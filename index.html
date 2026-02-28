@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Thang Tay AI</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background:#f4f4f4;}
+    #chat { margin-bottom: 20px; }
+    input { width: 70%; padding: 10px; }
+    button { padding: 10px; }
+    .msg { margin:5px 0; }
+  </style>
+</head>
+<body>
+
+<h2>🤖 Thang Tay AI</h2>
+
+<div id="chat"></div>
+
+<input type="text" id="message" placeholder="Nhập tin nhắn..." />
+<button onclick="sendMessage()">Gửi</button>
+
+<script>
+async function sendMessage() {
+  const message = document.getElementById("message").value;
+  const chat = document.getElementById("chat");
+
+  if (!message) return;
+
+  chat.innerHTML += `<div class="msg"><b>Bạn:</b> ${message}</div>`;
+
+  document.getElementById("message").value = "";
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer YOUR_API_KEY_HERE",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-3.5-turbo",
+      messages: [
+        { role: "user", content: message }
+      ]
+    })
+  });
+
+  const data = await response.json();
+  const reply = data.choices[0].message.content;
+
+  chat.innerHTML += `<div class="msg"><b>AI:</b> ${reply}</div>`;
+}
+</script>
+
+</body>
+</html>
