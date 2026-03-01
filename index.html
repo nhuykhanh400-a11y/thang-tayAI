@@ -123,6 +123,7 @@ button:hover {
 </div>
 
 <script>
+  let chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
 async function sendMessage() {
   const input = document.getElementById("messageInput");
   const message = input.value.trim();
