@@ -1,4 +1,13 @@
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(200).json({ message: "API is working. Use POST." });
+  }
+
+  const { message } = req.body;
+
+  // phần code còn lại của bạn
+}
+export default async function handler(req, res) {
   const { message } = req.body;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
