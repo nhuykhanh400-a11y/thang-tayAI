@@ -15,6 +15,24 @@ body {
   flex-direction: column;
   height: 100vh;
 }
+  .message-wrapper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.user-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
 
 .chat-container {
   flex: 1;
@@ -110,10 +128,33 @@ async function sendMessage() {
 
 function addMessage(text, type) {
   const chat = document.getElementById("chat");
-  const msg = document.createElement("div");
-  msg.classList.add("message", type);
-  msg.innerText = text;
-  chat.appendChild(msg);
+
+  const wrapper = document.createElement("div");
+
+  if (type === "ai") {
+    wrapper.classList.add("message-wrapper");
+
+    const avatar = document.createElement("img");
+    avatar.src = "DÁN_LINK_ẢNH_CỦA_BẠN_VÀO_ĐÂY";
+    avatar.classList.add("avatar");
+
+    const msg = document.createElement("div");
+    msg.classList.add("message", "ai");
+    msg.innerText = text;
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(msg);
+  } else {
+    wrapper.classList.add("user-wrapper");
+
+    const msg = document.createElement("div");
+    msg.classList.add("message", "user");
+    msg.innerText = text;
+
+    wrapper.appendChild(msg);
+  }
+
+  chat.appendChild(wrapper);
   chat.scrollTop = chat.scrollHeight;
 }
 </script>
