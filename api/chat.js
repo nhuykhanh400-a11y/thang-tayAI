@@ -1,7 +1,10 @@
 module.exports = async function handler(req, res) {
   try {
     console.log("BODY:", req.body);
-    const { message } = req.body;
+    const message =
+  req.body.message ||
+  req.body.prompt ||
+  req.body.text;
 
     if (!message) {
       return res.status(400).json({ error: "No message provided" });
