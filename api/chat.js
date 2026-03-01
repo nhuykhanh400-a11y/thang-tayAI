@@ -14,12 +14,12 @@ export default async function handler(req, res) {
       },
      body: JSON.stringify({
   model: "llama-3.1-8b-instant",
-  temperature: 0.4,
-  top_p: 0.45,
+  temperature: 0.3,
+  top_p: 0.35,
 messages: [
   {
     role: "system",
-    content: "Bạn là chuyên gia ngôn ngữ tiếng Việt.\nBạn có khả năng chuẩn hóa mọi câu tiếng Việt không dấu, viết tắt, sai chính tả nhẹ thành câu chuẩn trước khi xử lý.\nLuôn nội bộ chuyển câu của người dùng sang tiếng Việt đầy đủ rồi mới phân tích.\nKhông được hiểu sai teen code.\nNếu câu quá mơ hồ, chọn nghĩa phổ biến nhất trong ngữ cảnh.\nKhông nhắc lại câu hỏi.\nTrả lời ngắn gọn, rõ ràng và thông minh."
+    content: "Bạn là một AI thông minh, phân tích tốt.\nKhông lặp lại câu hỏi.\nKhông được mở đầu bằng 'Tôi hiểu...' hoặc các câu tương tự.\nTrả lời trực tiếp, tự nhiên, rõ ràng.\nNgắn gọn, đủ ý.\nHiểu tiếng Việt không dấu và teen code.\nChỉ giải thích dài khi người dùng yêu cầu."
   },
   {
     role: "user",
