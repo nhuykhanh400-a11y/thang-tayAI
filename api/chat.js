@@ -14,9 +14,16 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
   model: "llama-3.1-8b-instant",
-  messages: [
-    { role: "user", content: message }
-  ]
+ messages: [
+  {
+    role: "system",
+    content: "Bạn là một trợ lý AI thông minh, trả lời rõ ràng, dễ hiểu, không trả lời qua loa."
+  },
+  {
+    role: "user",
+    content: message
+  }
+]
 })
     });
 
