@@ -43,7 +43,7 @@ const data = await response.json();
 chat.innerHTML += `<div class="msg"><b>AI:</b> ${data.reply}</div>`;
 
   
-  const reply = data.choices[0].message.content;
+  const reply = data.reply;
 
   chat.innerHTML += `<div class="msg"><b>AI:</b> ${reply}</div>`;
 }
