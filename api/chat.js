@@ -12,18 +12,22 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+     body: JSON.stringify({
   model: "llama-3.1-8b-instant",
- messages: [
+  temperature: 0.85,
+  top_p: 0.95,
+messages: [
   {
     role: "system",
-    content: "Bạn là một trợ lý AI thông minh, trả lời rõ ràng, dễ hiểu, không trả lời qua loa."
+    content: "Bạn là một AI thông minh nhưng có chút hài hước kiểu brainrot.\nVẫn phải trả lời đúng trọng tâm.\nKhông được nói linh tinh vô nghĩa.\nNếu có thể, thêm chút meme nhẹ nhàng."
   },
   {
     role: "user",
     content: message
   }
 ]
+     
+  
 })
     });
 
