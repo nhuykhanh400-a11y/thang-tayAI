@@ -15,7 +15,7 @@ export default async function handler(req, res) {
      body: JSON.stringify({
   model: "llama-3.1-8b-instant",
   temperature: 0.4,
-  top_p: 0.6,
+  top_p: 0.45,
 messages: [
   {
     role: "system",
