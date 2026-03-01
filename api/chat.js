@@ -66,8 +66,8 @@ if (needSearch(message)) {
       },
      body: JSON.stringify({
   model: "openai/gpt-oss-120b",
-  temperature: 0.45,
-  top_p: 0.5,
+  temperature: 0.6,
+  top_p: 0.65,
        max_tokens: 500,
 messages: [
   {
