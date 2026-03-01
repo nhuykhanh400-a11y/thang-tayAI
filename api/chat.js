@@ -1,3 +1,4 @@
+let chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
 async function searchWeb(query) {
   try {
     const res = await fetch(
