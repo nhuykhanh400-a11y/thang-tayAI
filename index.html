@@ -39,6 +39,7 @@ async function sendMessage() {
 });
 
 const data = await response.json();
+  console.log("DATA:", data);
 
 chat.innerHTML += `<div class="msg"><b>AI:</b> ${data.reply}</div>`;
 
