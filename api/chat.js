@@ -5,7 +5,6 @@ export default async function handler(req, res) {
 
   const { message } = req.body;
 
-  // phần code còn lại của bạn
 }
 export default async function handler(req, res) {
   const { message } = req.body;
