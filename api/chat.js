@@ -1,111 +1,172 @@
-async function searchWeb(query) {
-  try {
-    const res = await fetch(
-      "https://searx.be/search?q=" +
-      encodeURIComponent(query) +
-      "&format=json"
-    );
+import { useState } from "react";
 
-    const data = await res.json();
-
-    if (!data.results || data.results.length === 0) {
-      return "Không có kết quả từ web.";
+export default function Chat() {
+  const [input, setInput] = useState("");
+  const [chatHistory, setChatHistory] = useState([
+    {
+      role: "assistant",
+      content:
+        "Chào bạn! Mình là AI người Tây 🤖 Bạn muốn hỏi gì nào?"
     }
+  ]);
+  const [loading, setLoading] = useState(false);
 
-    return data.results
-      .slice(0, 5)
-      .map(r =>
-        `Tiêu đề: ${r.title}\nNội dung: ${r.content}\nLink: ${r.url}`
-      )
-      .join("\n\n");
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-  } catch {
-    return "Lỗi khi tìm kiếm web.";
-  }
-}
+    const newHistory = [
+      ...chatHistory,
+      { role: "user", content: input }
+    ];
 
-function needSearch(question) {
-  const keywords = [
-    "hôm nay",
-    "mới nhất",
-    "hiện tại",
-    "giá",
-    "tin tức",
-    "2026",
-    "2027"
-  ];
+    setChatHistory(newHistory);
+    setInput("");
+    setLoading(true);
 
-  return keywords.some(k =>
-    question.toLowerCase().includes(k)
-  );
-}
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(200).json({ message: "API is working. Use POST." });
-  }
-
-  try {
-    const { chatHistory } = req.body;
-
-    if (!chatHistory || !Array.isArray(chatHistory)) {
-      return res.status(400).json({ error: "Chat history không hợp lệ" });
-    }
-
-    // Lấy câu hỏi cuối cùng của user
-    const lastMessage = chatHistory[chatHistory.length - 1];
-    let finalMessage = lastMessage.content;
-
-    // Nếu cần search web
-    if (needSearch(finalMessage)) {
-      const webData = await searchWeb(finalMessage);
-
-      finalMessage =
-        finalMessage +
-        "\n\nDữ liệu tham khảo từ internet:\n" +
-        webData +
-        "\n\nHãy trả lời dựa vào dữ liệu trên.";
-
-      // Thay thế message cuối bằng bản đã thêm dữ liệu web
-      chatHistory[chatHistory.length - 1] = {
-        role: "user",
-        content: finalMessage
-      };
-    }
-
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
+    try {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
-          temperature: 0.6,
-          top_p: 0.65,
-          max_tokens: 500,
-          messages: [
-            {
-              role: "system",
-              content: "Bạn là một AI rất thông minh và trả lời bằng tiếng Việt rõ ràng."
-            },
-            ...chatHistory
-          ]
+          chatHistory: newHistory
         })
-      }
-    );
+      });
 
-    const data = await response.json();
+      const data = await res.json();
 
-    const reply =
-      data.choices?.[0]?.message?.content || "Lỗi Groq API";
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: data.reply }
+      ]);
+    } catch (err) {
+      setChatHistory(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Có lỗi xảy ra 😢"
+        }
+      ]);
+    }
 
-    return res.status(200).json({ reply });
+    setLoading(false);
+  };
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
-  }
+  return (
+    <div
+      style={{
+        background: "#0f172a",
+        minHeight: "100vh",
+        padding: "20px",
+        color: "white",
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
+      <h1 style={{ marginBottom: "20px" }}>
+        AI người Tây
+      </h1>
+
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {chatHistory.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent:
+                msg.role === "user"
+                  ? "flex-end"
+                  : "flex-start",
+              marginBottom: "12px"
+            }}
+          >
+            {msg.role === "assistant" && (
+              <img
+                src="https://i.pravatar.cc/40?img=12"
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  borderRadius: "50%",
+                  marginRight: "8px"
+                }}
+              />
+            )}
+
+            <div
+              style={{
+                maxWidth: "60%",
+                padding: "12px 16px",
+                borderRadius: "16px",
+                backgroundColor:
+                  msg.role === "user"
+                    ? "#2563eb"
+                    : "#1e293b",
+                color: "white"
+              }}
+            >
+              {msg.content}
+            </div>
+
+            {msg.role === "user" && (
+              <img
+                src="https://i.pravatar.cc/40?img=5"
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  borderRadius: "50%",
+                  marginLeft: "8px"
+                }}
+              />
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div style={{ marginTop: "10px" }}>
+            AI đang trả lời...
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          marginTop: "15px"
+        }}
+      >
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e =>
+            e.key === "Enter" && sendMessage()
+          }
+          placeholder="Nhập câu hỏi của bạn..."
+          style={{
+            flex: 1,
+            padding: "12px",
+            borderRadius: "20px",
+            border: "none",
+            outline: "none",
+            marginRight: "10px"
+          }}
+        />
+
+        <button
+          onClick={sendMessage}
+          style={{
+            padding: "12px 20px",
+            borderRadius: "20px",
+            border: "none",
+            backgroundColor: "#2563eb",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          Gửi
+        </button>
+      </div>
+    </div>
+  );
 }
