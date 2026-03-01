@@ -1,9 +1,61 @@
+async function searchWeb(query) {
+  try {
+    const res = await fetch(
+      "https://searx.be/search?q=" +
+      encodeURIComponent(query) +
+      "&format=json"
+    );
+
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
+      return "Không có kết quả từ web.";
+    }
+
+    return data.results
+      .slice(0, 5)
+      .map(r =>
+        `Tiêu đề: ${r.title}\nNội dung: ${r.content}\nLink: ${r.url}`
+      )
+      .join("\n\n");
+
+  } catch {
+    return "Lỗi khi tìm kiếm web.";
+  }
+}
+
+function needSearch(question) {
+  const keywords = [
+    "hôm nay",
+    "mới nhất",
+    "hiện tại",
+    "giá",
+    "tin tức",
+    "2026",
+    "2027"
+  ];
+
+  return keywords.some(k =>
+    question.toLowerCase().includes(k)
+  );
+}
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(200).json({ message: "API is working. Use POST." });
   }
 
   const { message } = req.body;
+  let finalMessage = message;
+
+if (needSearch(message)) {
+  const webData = await searchWeb(message);
+
+  finalMessage =
+    message +
+    "\n\nDữ liệu tham khảo từ internet:\n" +
+    webData +
+    "\n\nHãy trả lời dựa vào dữ liệu trên.";
+}
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -24,7 +76,7 @@ messages: [
   },
   {
     role: "user",
-    content: message
+    content: finalMessage
   }
 ]
      
