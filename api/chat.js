@@ -13,9 +13,10 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
       },
      body: JSON.stringify({
-  model: "llama-3.1-70b-versatile",
+  model: "openai/gpt-oss-120b",
   temperature: 0.35,
   top_p: 0.4,
+       max_tokens: 500,
 messages: [
   {
     role: "system",
