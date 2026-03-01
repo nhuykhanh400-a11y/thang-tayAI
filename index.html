@@ -150,7 +150,7 @@ const reply = data.reply;
 chatHistory.push({ role: "assistant", content: reply });
 localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
 
-addMessage(reply, "bot");
+addMessage(reply, "ai");
 }
 
 function addMessage(text, type) {
