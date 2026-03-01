@@ -127,7 +127,9 @@ button:hover {
 async function sendMessage() {
   const input = document.getElementById("messageInput");
   const message = input.value.trim();
+  
   if (!message) return;
+  chatHistory.push({ role: "user", content: message });
 
   addMessage(message, "user");
   input.value = "";
@@ -137,11 +139,17 @@ async function sendMessage() {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ message })
-  });
+    body: JSON.stringify({
+  chatHistory: chatHistory
+});
 
   const data = await response.json();
-  addMessage(data.reply, "ai");
+const reply = data.reply;
+
+chatHistory.push({ role: "assistant", content: reply });
+localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
+
+addMessage(reply, "bot");
 }
 
 function addMessage(text, type) {
