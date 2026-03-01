@@ -1,5 +1,6 @@
 module.exports = async function handler(req, res) {
   try {
+    console.log("BODY:", req.body);
     const { message } = req.body;
 
     if (!message) {
