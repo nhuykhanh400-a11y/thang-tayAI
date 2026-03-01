@@ -134,7 +134,7 @@ Luôn suy nghĩ cẩn thận trước khi đưa ra câu trả lời cuối cùng
             ...chatHistory
           ]
         })
-      }
+      
     );
 
     const data = await response.json();
