@@ -14,8 +14,8 @@ export default async function handler(req, res) {
       },
      body: JSON.stringify({
   model: "openai/gpt-oss-120b",
-  temperature: 0.35,
-  top_p: 0.4,
+  temperature: 0.45,
+  top_p: 0.5,
        max_tokens: 500,
 messages: [
   {
