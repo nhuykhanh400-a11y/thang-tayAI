@@ -1,5 +1,6 @@
 module.exports = async function handler(req, res) {
   try {
+    console.log("KEY:", process.env.GEMINI_API_KEY);
     console.log("BODY:", req.body);
     console.log("BODY:", req.body);
 
