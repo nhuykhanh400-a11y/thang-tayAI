@@ -140,8 +140,9 @@ async function sendMessage() {
     "Content-Type": "application/json"
   },
   body: JSON.stringify({
-    chatHistory: chatHistory
-  })
+  message: message,
+  imageBase64: base64Image
+})
 });
 
   const data = await response.json();
