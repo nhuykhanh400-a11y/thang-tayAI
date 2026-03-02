@@ -1,72 +1,58 @@
-module.exports = async function handler(req, res) {
-  try {
-    console.log("KEY:", process.env.GEMINI_API_KEY);
-    console.log("BODY:", req.body);
-    console.log("BODY:", req.body);
+export default async function handler(req, res) {
 
-const chatHistory = req.body.chatHistory;
+  const { message, imageBase64 } = req.body;
 
-if (!chatHistory) {
-  return res.status(400).json({ error: "No chat history provided" });
-}
+  // 🟢 Nếu có ảnh → dùng Gemini Vision
+  if (imageBase64) {
 
-    if (!chatHistory) {
-  return res.status(400).json({ error: "No chat history provided" });
-}
-
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
+    const visionResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
-          messages: [
-  {
-  role: "system",
-  content: `
-You are an advanced AI assistant comparable to ChatGPT Plus.
-
-You must:
-- Think step by step internally before responding.
-- Provide structured answers using headings or bullet points when useful.
-- Explain reasoning clearly but not excessively long.
-- Be precise and intelligent.
-- Avoid unnecessary fluff.
-- If uncertain, reason carefully instead of guessing.
-
-For complex problems:
-- Analyze deeply.
-- Break into components.
-- Solve each part logically.
-- Conclude clearly.
-
-Your goal is to provide expert-level responses.
-`
-},
-  ...chatHistory
-],
-          max_tokens: 500,
-        }),
+          contents: [
+            {
+              parts: [
+                { text: "Phân tích bức ảnh này chi tiết:" },
+                {
+                  inline_data: {
+                    mime_type: "image/jpeg",
+                    data: imageBase64
+                  }
+                }
+              ]
+            }
+          ]
+        })
       }
     );
 
-    const text = await response.text();
+    const visionData = await visionResponse.json();
+    const visionText = visionData.candidates[0].content.parts[0].text;
 
-    if (!response.ok) {
-      console.error("Groq error:", text);
-      return res.status(500).json({ error: text });
-    }
+    return res.status(200).json({ reply: visionText });
+  }
 
-    const data = JSON.parse(text);
+  // 🔵 Nếu chỉ có text → dùng Groq như cũ
+  const textResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-120b",
+      messages: [{ role: "user", content: message }]
+    })
+  });
 
-    return res.status(200).json({
-      reply: data.choices[0].message.content,
-    });
-  } catch (err) {
+  const textData = await textResponse.json();
+
+  return res.status(200).json({
+    reply: textData.choices[0].message.content
+  });
+} catch (err) {
     console.error("SERVER CRASH:", err);
     return res.status(500).json({ error: err.message });
   }
