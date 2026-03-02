@@ -3,10 +3,10 @@ module.exports = async function handler(req, res) {
     console.log("BODY:", req.body);
     console.log("BODY:", req.body);
 
-const message = req.body.message || req.body.prompt || req.body.text;
+const chatHistory = req.body.chatHistory;
 
-if (!message) {
-  return res.status(400).json({ error: "No message provided" });
+if (!chatHistory) {
+  return res.status(400).json({ error: "No chat history provided" });
 }
 
     if (!message) {
@@ -23,10 +23,7 @@ if (!message) {
         },
         body: JSON.stringify({
           model: "llama3-70b-8192",
-          messages: [
-            { role: "system", content: "You are a helpful assistant." },
-            { role: "user", content: message },
-          ],
+          messages: chatHistory,
           max_tokens: 800,
         }),
       }
