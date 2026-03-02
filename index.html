@@ -158,8 +158,7 @@ function addMessage(text, type) {
 
   const wrapper = document.createElement("div");
 
-  if (type === "ai") {
-    wrapper.classList.add("message-wrapper");
+  if (type === "ai") {wrapper.classList.add("message-wrapper");
 
     const avatar = document.createElement("img");
     avatar.src = "images/tayai.jpg";
