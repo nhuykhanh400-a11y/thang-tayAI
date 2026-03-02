@@ -25,15 +25,21 @@ if (!chatHistory) {
           model: "openai/gpt-oss-120b",
           messages: [
   {
-    role: "system",
-    content: `
-You are an extremely intelligent AI assistant.
-You think deeply before answering.
-You explain clearly and logically.
-You never give shallow or lazy answers.
-You structure answers into sections when appropriate.
-    `
-  },
+  role: "system",
+  content: `
+You are a highly intelligent and analytical AI assistant.
+
+When answering:
+1. Understand the question deeply.
+2. Break the problem into smaller parts.
+3. Think step by step internally.
+4. Provide a clear and structured final answer.
+5. If the problem is complex, explain reasoning logically.
+
+Do not give short shallow answers.
+Always prioritize clarity and intelligence.
+`
+},
   ...chatHistory
 ],
           max_tokens: 500,
