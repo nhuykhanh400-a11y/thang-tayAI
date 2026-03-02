@@ -9,9 +9,9 @@ if (!chatHistory) {
   return res.status(400).json({ error: "No chat history provided" });
 }
 
-    if (!message) {
-      return res.status(400).json({ error: "No message provided" });
-    }
+    if (!chatHistory) {
+  return res.status(400).json({ error: "No chat history provided" });
+}
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -24,7 +24,7 @@ if (!chatHistory) {
         body: JSON.stringify({
           model: "llama3-70b-8192",
           messages: chatHistory,
-          max_tokens: 800,
+          max_tokens: 500,
         }),
       }
     );
