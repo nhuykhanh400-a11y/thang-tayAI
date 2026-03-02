@@ -23,7 +23,19 @@ if (!chatHistory) {
         },
         body: JSON.stringify({
           model: "openai/gpt-oss-120b",
-          messages: chatHistory,
+          messages: [
+  {
+    role: "system",
+    content: `
+You are an extremely intelligent AI assistant.
+You think deeply before answering.
+You explain clearly and logically.
+You never give shallow or lazy answers.
+You structure answers into sections when appropriate.
+    `
+  },
+  ...chatHistory
+],
           max_tokens: 500,
         }),
       }
