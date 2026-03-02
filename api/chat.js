@@ -1,5 +1,7 @@
 module.exports = async function handler(req, res) {
 
+  console.log("BODY NHẬN ĐƯỢC:", req.body);
+
   if (req.method !== "POST") {
     return res.status(405).json({ reply: "Method not allowed" });
   }
@@ -12,16 +14,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ reply: "No input provided" });
     }
 
-    // demo trả lời tạm
     let reply = "Bạn gửi: ";
 
-    if (message) {
-      reply += message;
-    }
-
-    if (imageBase64) {
-      reply += " (Có gửi kèm ảnh)";
-    }
+    if (message) reply += message;
+    if (imageBase64) reply += " (Có gửi kèm ảnh)";
 
     return res.status(200).json({ reply });
 
