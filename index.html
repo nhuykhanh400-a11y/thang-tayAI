@@ -118,10 +118,14 @@ button:hover {
 <div class="input-container">
 
   <input type="text" id="messageInput"
-         placeholder="Nhập câu hỏi của bạn... 😊"
-         onkeydown="if(event.key === 'Enter'){ sendMessage(); }">
+    placeholder="Nhập câu hỏi của bạn... 😊"
+    onkeydown="if(event.key === 'Enter'){ sendMessage(); }">
 
-  <input type="file" id="imageInput" accept="image/*">
+  <!-- Ẩn input file -->
+  <input type="file" id="imageInput" accept="image/*" hidden>
+
+  <!-- Nút + -->
+  <button type="button" id="uploadBtn">+</button>
 
   <button onclick="sendMessage()">Gửi</button>
 
