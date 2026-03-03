@@ -46,6 +46,14 @@ const imageBase64 = body?.imageBase64;
       );
 
       const geminiData = await geminiResponse.json();
+
+if (!geminiResponse.ok) {
+  console.error("Gemini error:", geminiData);
+  return res.status(400).json({
+    reply: "Gemini API lỗi",
+    error: geminiData
+  });
+}
       const description = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!description) {
