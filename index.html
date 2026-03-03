@@ -284,37 +284,66 @@ fen += (currentTurn==="white"?" w ":" b ") + "- - 0 1";
 return fen;
 }
 
-const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
-engine.postMessage("uci");
-
-engine.onmessage = function(event){
-if(event.data.includes("bestmove")){
-const move=event.data.split(" ")[1];
-if(move==="(none)") return;
-
-const from=move.substring(0,2);
-const to=move.substring(2,4);
-
-const sr=8-parseInt(from[1]);
-const sc=from.charCodeAt(0)-97;
-
-const tr=8-parseInt(to[1]);
-const tc=to.charCodeAt(0)-97;
-
-movePiece(sr,sc,tr,tc);
-currentTurn = currentTurn==="white"?"black":"white";
-drawBoard();
-}
-};
-
-function makeAIMove(){
+{
 const fen=convertToFEN();
 engine.postMessage("position fen "+fen);
 engine.postMessage("go depth 12");
 }
 
 startGame("white");
+/* ================= AI STOCKFISH FIX ================= */
 
+let engineReady = false;
+
+const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
+
+engine.onmessage = function(event){
+
+    const line = event.data;
+
+    // Khi engine sẵn sàng
+    if(line === "uciok"){
+        engineReady = true;
+        console.log("Engine ready");
+    }
+
+    // Khi có nước đi tốt nhất
+    if(line.startsWith("bestmove")){
+
+        const move = line.split(" ")[1];
+        if(move === "(none)") return;
+
+        const from = move.substring(0,2);
+        const to   = move.substring(2,4);
+
+        const sr = 8 - parseInt(from[1]);
+        const sc = from.charCodeAt(0) - 97;
+
+        const tr = 8 - parseInt(to[1]);
+        const tc = to.charCodeAt(0) - 97;
+
+        movePiece(sr,sc,tr,tc);
+
+        currentTurn = currentTurn==="white"?"black":"white";
+        drawBoard();
+    }
+};
+
+engine.postMessage("uci");
+
+/* Gọi AI */
+function makeAIMove(){
+
+    if(!engineReady){
+        console.log("Engine not ready yet");
+        return;
+    }
+
+    const fen = convertToFEN();
+
+    engine.postMessage("position fen " + fen);
+    engine.postMessage("go depth 12");
+}
 </script>
 </body>
 </html>
