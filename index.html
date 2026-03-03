@@ -1,62 +1,50 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Chess AI</title>
-
+<title>Chess</title>
 <style>
-body {
-  background: #1e1e1e;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  font-family: Arial;
+body{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#222;
 }
 
-#board {
-  width: 480px;
-  height: 480px;
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  border: 4px solid #333;
+#board{
+  width:480px;
+  height:480px;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(8,1fr);
 }
 
-.square {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 40px;
-  cursor: pointer;
-  user-select: none;
+.square{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:40px;
 }
 
-.light { background: #f0d9b5; }
-.dark { background: #b58863; }
+.light{ background:#f0d9b5; }
+.dark{ background:#b58863; }
 
-.selected {
-  outline: 3px solid yellow;
-}
+.highlight{ background:yellow !important; }
+.capture{ background:red !important; }
 
-/* ===== THÊM HIGHLIGHT ===== */
-.highlight-move {
-  background-color: rgba(255, 255, 0, 0.4) !important;
-}
-
-.highlight-capture {
-  background-color: rgba(255, 0, 0, 0.4) !important;
+.piece{
+  cursor:grab;
+  user-select:none;
 }
 </style>
 </head>
-
 <body>
 
 <div id="board"></div>
 
 <script>
+
 const board = document.getElementById("board");
 
 const pieces = {
@@ -64,203 +52,171 @@ const pieces = {
   R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
 };
 
-let position = [
-  "rnbqkbnr",
-  "pppppppp",
-  "........",
-  "........",
-  "........",
-  "........",
-  "PPPPPPPP",
-  "RNBQKBNR"
+let gameState = [
+["r","n","b","q","k","b","n","r"],
+["p","p","p","p","p","p","p","p"],
+["","","","","","","",""],
+["","","","","","","",""],
+["","","","","","","",""],
+["","","","","","","",""],
+["P","P","P","P","P","P","P","P"],
+["R","N","B","Q","K","B","N","R"]
 ];
 
 let selected = null;
+let currentTurn = "white";
 
-function createBoard() {
-  board.innerHTML = "";
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-
-      const square = document.createElement("div");
+function drawBoard(){
+  board.innerHTML="";
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const square=document.createElement("div");
       square.classList.add("square");
-      square.classList.add((row + col) % 2 === 0 ? "light" : "dark");
+      square.classList.add((r+c)%2==0?"light":"dark");
+      square.dataset.row=r;
+      square.dataset.col=c;
 
-      const piece = position[row][col];
-      if (piece !== ".") {
-        square.textContent = pieces[piece];
+      const piece=gameState[r][c];
+      if(piece){
+        const span=document.createElement("span");
+        span.textContent=pieces[piece];
+        span.classList.add("piece");
+        span.draggable=true;
+
+        span.addEventListener("dragstart",(e)=>{
+          selected={row:r,col:c};
+          highlightMoves(r,c);
+        });
+
+        square.appendChild(span);
       }
 
-      square.dataset.row = row;
-      square.dataset.col = col;
+      square.addEventListener("dragover",e=>e.preventDefault());
 
-      square.addEventListener("click", onSquareClick);
+      square.addEventListener("drop",()=>{
+        if(!selected) return;
+
+        const moves=getLegalMoves(selected.row,selected.col);
+        if(moves.some(m=>m.r==r && m.c==c)){
+          gameState[r][c]=gameState[selected.row][selected.col];
+          gameState[selected.row][selected.col]="";
+          currentTurn=currentTurn=="white"?"black":"white";
+        }
+
+        selected=null;
+        clearHighlight();
+        drawBoard();
+      });
 
       board.appendChild(square);
     }
   }
 }
 
-createBoard();
-
-function clearHighlights() {
-  document.querySelectorAll(".square").forEach(sq => {
-    sq.classList.remove("highlight-move");
-    sq.classList.remove("highlight-capture");
+function clearHighlight(){
+  document.querySelectorAll(".square").forEach(s=>{
+    s.classList.remove("highlight","capture");
   });
 }
 
-function highlightMoves(row, col) {
-  clearHighlights();
+function highlightMoves(r,c){
+  clearHighlight();
+  const moves=getLegalMoves(r,c);
+  moves.forEach(m=>{
+    const sq=document.querySelector(`[data-row='${m.r}'][data-col='${m.c}']`);
+    if(gameState[m.r][m.c])
+      sq.classList.add("capture");
+    else
+      sq.classList.add("highlight");
+  });
+}
 
-  const piece = position[row][col];
-  if (piece === ".") return;
+function getLegalMoves(r,c){
+  const piece=gameState[r][c];
+  if(!piece) return [];
 
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
+  if(currentTurn=="white" && piece==piece.toLowerCase()) return [];
+  if(currentTurn=="black" && piece==piece.toUpperCase()) return [];
 
-      if (isValidMove(piece, row, col, r, c)) {
-        const square = document.querySelector(
-          `.square[data-row='${r}'][data-col='${c}']`
-        );
+  const moves=[];
+  const isWhite=piece==piece.toUpperCase();
+  const dir=isWhite?-1:1;
 
-        if (position[r][c] === ".") {
-          square.classList.add("highlight-move");
-        } else {
-          square.classList.add("highlight-capture");
+  function inside(x,y){ return x>=0&&x<8&&y>=0&&y<8; }
+
+  function slide(dirs){
+    dirs.forEach(d=>{
+      let x=r+d[0], y=c+d[1];
+      while(inside(x,y)){
+        if(!gameState[x][y]){
+          moves.push({r:x,c:y});
+        }else{
+          if((gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
+            moves.push({r:x,c:y});
+          break;
         }
+        x+=d[0]; y+=d[1];
       }
-
-    }
-  }
-}
-
-function onSquareClick(e) {
-  const square = e.currentTarget;
-
-  const row = +square.dataset.row;
-  const col = +square.dataset.col;
-
-  const piece = position[row][col];
-
-  if (!selected) {
-    if (piece !== ".") {
-      selected = { row, col };
-      square.classList.add("selected");
-      highlightMoves(row, col); // THÊM
-    }
-    return;
+    });
   }
 
-  const fromRow = selected.row;
-  const fromCol = selected.col;
-  const movingPiece = position[fromRow][fromCol];
+  switch(piece.toLowerCase()){
 
-  if (isValidMove(movingPiece, fromRow, fromCol, row, col)) {
-    movePiece(fromRow, fromCol, row, col);
-  }
-
-  selected = null;
-  clearHighlights(); // THÊM
-  createBoard();
-}
-
-function movePiece(fr, fc, tr, tc) {
-  position[tr] =
-    position[tr].substring(0, tc) +
-    position[fr][fc] +
-    position[tr].substring(tc + 1);
-
-  position[fr] =
-    position[fr].substring(0, fc) +
-    "." +
-    position[fr].substring(fc + 1);
-}
-
-function isPathClear(fr, fc, tr, tc) {
-  const dr = Math.sign(tr - fr);
-  const dc = Math.sign(tc - fc);
-
-  let r = fr + dr;
-  let c = fc + dc;
-
-  while (r !== tr || c !== tc) {
-    if (position[r][c] !== ".") return false;
-    r += dr;
-    c += dc;
-  }
-
-  return true;
-}
-
-function isValidMove(piece, fr, fc, tr, tc) {
-
-  if (fr === tr && fc === tc) return false;
-
-  const dr = tr - fr;
-  const dc = tc - fc;
-  const targetPiece = position[tr][tc];
-
-  const isWhite = piece === piece.toUpperCase();
-  const isTargetWhite = targetPiece === targetPiece.toUpperCase();
-
-  if (targetPiece !== "." && isWhite === isTargetWhite) return false;
-
-  switch (piece.toLowerCase()) {
-
-    case "p": {
-      const dir = isWhite ? -1 : 1;
-
-      // đi 1 ô
-      if (dc === 0 && dr === dir && targetPiece === ".") return true;
-
-      // đi 2 ô lần đầu
-      if (
-        dc === 0 &&
-        dr === 2 * dir &&
-        ((isWhite && fr === 6) || (!isWhite && fr === 1)) &&
-        position[fr + dir][fc] === "." &&
-        targetPiece === "."
-      ) return true;
-
-      // ăn chéo
-      if (Math.abs(dc) === 1 && dr === dir && targetPiece !== ".")
-        return true;
-
-      return false;
-    }
-
-    case "r": // Xe
-      if (dr === 0 || dc === 0) {
-        return isPathClear(fr, fc, tr, tc);
+    case "p":
+      if(inside(r+dir,c) && !gameState[r+dir][c])
+        moves.push({r:r+dir,c:c});
+      if((isWhite&&r==6)||( !isWhite&&r==1)){
+        if(!gameState[r+dir][c]&&!gameState[r+2*dir][c])
+          moves.push({r:r+2*dir,c:c});
       }
-      return false;
+      [-1,1].forEach(dc=>{
+        if(inside(r+dir,c+dc)&&gameState[r+dir][c+dc]){
+          if((gameState[r+dir][c+dc].toUpperCase()==gameState[r+dir][c+dc])!=isWhite)
+            moves.push({r:r+dir,c:c+dc});
+        }
+      });
+      break;
 
-    case "b": // Tượng
-      if (Math.abs(dr) === Math.abs(dc)) {
-        return isPathClear(fr, fc, tr, tc);
-      }
-      return false;
+    case "r":
+      slide([[1,0],[-1,0],[0,1],[0,-1]]);
+      break;
 
-    case "q": // Hậu
-      if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) {
-        return isPathClear(fr, fc, tr, tc);
-      }
-      return false;
+    case "b":
+      slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
+      break;
 
-    case "n": // Mã
-      return (
-        (Math.abs(dr) === 2 && Math.abs(dc) === 1) ||
-        (Math.abs(dr) === 1 && Math.abs(dc) === 2)
-      );
+    case "q":
+      slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
+      break;
 
-    case "k": // Vua
-      return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
+    case "n":
+      [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]].forEach(d=>{
+        const x=r+d[0], y=c+d[1];
+        if(inside(x,y)){
+          if(!gameState[x][y] ||
+          (gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
+            moves.push({r:x,c:y});
+        }
+      });
+      break;
+
+    case "k":
+      [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d=>{
+        const x=r+d[0], y=c+d[1];
+        if(inside(x,y)){
+          if(!gameState[x][y] ||
+          (gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
+            moves.push({r:x,c:y});
+        }
+      });
+      break;
   }
 
-  return false;
+  return moves;
 }
+
+drawBoard();
+
 </script>
-
 </body>
 </html>
