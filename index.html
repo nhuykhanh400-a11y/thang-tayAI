@@ -65,6 +65,8 @@ const startPosition = [
   "RNBQKBNR"
 ];
 
+let draggedSquare = null;
+
 function createBoard() {
   board.innerHTML = "";
   for (let row = 0; row < 8; row++) {
@@ -88,6 +90,39 @@ function createBoard() {
 }
 
 createBoard();
+
+
+// ===== FIX DRAG & DROP =====
+
+// Xóa bóng mờ khi kéo
+document.addEventListener("dragstart", function(e) {
+  if (e.target.classList.contains("square") && e.target.textContent !== "") {
+    draggedSquare = e.target;
+
+    const img = new Image();
+    img.src =
+      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjwvc3ZnPg==";
+    e.dataTransfer.setDragImage(img, 0, 0);
+  }
+});
+
+// BẮT BUỘC để thả được
+document.addEventListener("dragover", function(e) {
+  e.preventDefault();
+});
+
+// Xử lý thả quân
+document.addEventListener("drop", function(e) {
+  if (
+    e.target.classList.contains("square") &&
+    draggedSquare &&
+    draggedSquare.textContent !== ""
+  ) {
+    e.target.textContent = draggedSquare.textContent;
+    draggedSquare.textContent = "";
+    draggedSquare = null;
+  }
+});
 </script>
 
 </body>
