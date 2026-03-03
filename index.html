@@ -18,18 +18,18 @@ body{
   display:flex;
   font-family:Arial;
   height:100vh;
-  background:#1e1e1e;
+  background:#121212;
   color:white;
 }
 .sidebar{
   width:200px;
-  background:#111;
+  background:#1f1f1f;
   padding:20px;
 }
 .sidebar button{
   width:100%;
-  margin-bottom:10px;
   padding:10px;
+  margin-bottom:10px;
   background:#333;
   color:white;
   border:none;
@@ -39,12 +39,14 @@ body{
   flex:1;
   padding:20px;
 }
-.hidden{
-  display:none;
-}
+.hidden{ display:none; }
 #board{
   width:500px;
   margin:20px auto;
+}
+.timers{
+  text-align:center;
+  font-size:20px;
 }
 </style>
 </head>
@@ -58,19 +60,45 @@ body{
 
 <div class="main">
 
+<!-- CHAT -->
 <div id="chatSection">
   <h2>Chat Demo</h2>
-  <p>Chat vẫn hoạt động bình thường.</p>
+  <div id="chatBox"></div>
+  <input id="chatInput" placeholder="Nhập..." 
+  onkeydown="if(event.key==='Enter') sendMessage()">
+  <button onclick="sendMessage()">Gửi</button>
 </div>
 
+<!-- CHESS -->
 <div id="chessSection" class="hidden">
   <h2 style="text-align:center">Bàn Cờ</h2>
   <div id="board"></div>
+  <div class="timers">
+    ⚪ Trắng: <span id="whiteTimer">0:00</span> |
+    ⚫ Đen: <span id="blackTimer">0:00</span>
+  </div>
 </div>
 
 </div>
 
 <script>
+
+//////////////// CHAT //////////////////
+
+function sendMessage(){
+  const input=document.getElementById("chatInput");
+  if(!input.value.trim()) return;
+
+  document.getElementById("chatBox").innerHTML +=
+  "<div><b>Bạn:</b> "+input.value+"</div>";
+
+  setTimeout(()=>{
+    document.getElementById("chatBox").innerHTML +=
+    "<div><b>AI:</b> Tôi đang chạy bản demo 😎</div>";
+  },500);
+
+  input.value="";
+}
 
 function showChat(){
   document.getElementById("chatSection").classList.remove("hidden");
@@ -80,20 +108,75 @@ function showChat(){
 function showChess(){
   document.getElementById("chatSection").classList.add("hidden");
   document.getElementById("chessSection").classList.remove("hidden");
-
-  setTimeout(initBoard,100); // đảm bảo render đúng
+  setTimeout(initBoard,100);
 }
 
-var board=null;
-var game=new Chess();
+//////////////// CHESS //////////////////
+
+let board=null;
+let game=new Chess();
+
+let whiteTime=0;
+let blackTime=0;
+let currentTurn="white";
+let timerInterval=null;
+
+function formatTime(sec){
+  let m=Math.floor(sec/60);
+  let s=sec%60;
+  return m+":"+(s<10?"0":"")+s;
+}
+
+function startTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+
+  timerInterval=setInterval(()=>{
+    if(currentTurn==="white"){
+      whiteTime++;
+      document.getElementById("whiteTimer").innerText=formatTime(whiteTime);
+    }else{
+      blackTime++;
+      document.getElementById("blackTimer").innerText=formatTime(blackTime);
+    }
+  },1000);
+}
 
 function initBoard(){
   if(board!==null) return;
 
   board=Chessboard('board',{
     draggable:true,
-    position:'start'
+    position:'start',
+    pieceTheme:
+'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
+    onDrop:onDrop
   });
+
+  startTimer();
+}
+
+function onDrop(source,target){
+  let move=game.move({
+    from:source,
+    to:target,
+    promotion:'q'
+  });
+
+  if(move===null) return 'snapback';
+
+  currentTurn="black";
+  setTimeout(aiMove,500);
+}
+
+function aiMove(){
+  let moves=game.moves();
+  if(moves.length===0) return;
+
+  let randomMove=moves[Math.floor(Math.random()*moves.length)];
+  game.move(randomMove);
+  board.position(game.fen());
+
+  currentTurn="white";
 }
 
 </script>
