@@ -1,28 +1,36 @@
-module.exports = async function handler(req, res) {
+const OpenAI = require("openai");
 
-  console.log("BODY NHẬN ĐƯỢC:", req.body);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+module.exports = async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({ reply: "Method not allowed" });
   }
 
   try {
+    const { message } = req.body;
 
-    const { message, imageBase64 } = req.body;
-
-    if (!message && !imageBase64) {
+    if (!message) {
       return res.status(400).json({ reply: "No input provided" });
     }
 
-    let reply = "Bạn gửi: ";
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Bạn là một AI nói chuyện thân thiện." },
+        { role: "user", content: message }
+      ],
+    });
 
-    if (message) reply += message;
-    if (imageBase64) reply += " (Có gửi kèm ảnh)";
+    const reply = completion.choices[0].message.content;
 
     return res.status(200).json({ reply });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ reply: "Server error" });
+    return res.status(500).json({ reply: "AI đang lỗi 😢" });
   }
 };
