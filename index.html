@@ -205,20 +205,32 @@ const dc=tc-sc;
 
 switch(piece.toLowerCase()){
 
-case "p":
-const dir = piece===piece.toUpperCase()?-1:1;
-if(dc===0 && !target){
-if(dr===dir) return true;
+case "p": {
+const isWhite = piece===piece.toUpperCase();
+const dir = isWhite ? -1 : 1;
+
+// đi 1 ô
+if(dc===0 && dr===dir && !target) return true;
+
+// đi 2 ô lần đầu
+if(dc===0 && dr===2*dir && !target){
+if(isWhite && sr===6 && gameState[sr+dir][sc]==="") return true;
+if(!isWhite && sr===1 && gameState[sr+dir][sc]==="") return true;
 }
+
+// ăn chéo
 if(Math.abs(dc)===1 && dr===dir && target) return true;
+
 break;
+}
 
 case "r":
 if(sr===tr || sc===tc) return pathClear(sr,sc,tr,tc);
 break;
 
 case "b":
-if(Math.abs(dr)===Math.abs(dc)) return pathClear(sr,sc,tr,tc);
+if(Math.abs(dr)===Math.abs(dc))
+return pathClear(sr,sc,tr,tc);
 break;
 
 case "q":
