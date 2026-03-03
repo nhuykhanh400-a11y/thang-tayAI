@@ -2,9 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>AI Chat + Cờ vua</title>
+<title>AI Chat + Cờ vua Pro</title>
 
-<!-- Chess libs -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chess.js@latest/dist/chess.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
@@ -12,14 +11,13 @@
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
   display:flex;
   height:100vh;
+  font-family:Arial;
   background:#0f172a;
   color:white;
 }
 
-/* Sidebar */
 #sidebar{
   width:200px;
   background:#111827;
@@ -38,16 +36,13 @@ body{
   background:#374151;
 }
 
-/* Main */
 #main{
   flex:1;
   padding:20px;
 }
 
-/* Chat */
-#chat-area{
-  display:block;
-}
+#chat-area{ display:block; }
+#chess-area{ display:none; }
 
 #chat-box{
   height:400px;
@@ -57,71 +52,76 @@ body{
   margin-bottom:10px;
 }
 
-/* Chess */
-#chess-area{
-  display:none;
-}
-
 #board{
   width:400px;
   margin-top:10px;
 }
 
-input{
-  padding:8px;
+.clock{
+  font-size:22px;
+  margin:5px 0;
 }
 
-button{
-  padding:8px 12px;
-  cursor:pointer;
+select, button, input{
+  padding:6px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Sidebar -->
 <div id="sidebar">
   <div class="tab" onclick="showChat()">Chat</div>
   <div class="tab" onclick="showChess()">Cờ vua</div>
 </div>
 
-<!-- Main -->
 <div id="main">
 
-  <!-- CHAT -->
-  <div id="chat-area">
-    <h2>AI Chat</h2>
-    <div id="chat-box"></div>
-    <input id="message-input" placeholder="Nhập tin nhắn..." style="width:80%">
-    <button onclick="sendMessage()">Gửi</button>
+<!-- CHAT -->
+<div id="chat-area">
+  <h2>AI Chat</h2>
+  <div id="chat-box"></div>
+  <input id="message-input" placeholder="Nhập tin nhắn..." style="width:80%">
+  <button onclick="sendMessage()">Gửi</button>
+</div>
+
+<!-- CHESS -->
+<div id="chess-area">
+  <h2>Đấu với AI</h2>
+
+  <div>
+    Cấp độ AI:
+    <select id="level">
+      <option value="5">Dễ</option>
+      <option value="10" selected>Trung bình</option>
+      <option value="15">Khó</option>
+      <option value="20">Siêu khó</option>
+    </select>
   </div>
 
-  <!-- CHESS -->
-  <div id="chess-area">
-    <h2>Đấu với AI</h2>
-    <div id="board"></div>
-    <button onclick="newGame()">Ván mới</button>
-  </div>
+  <div class="clock">Bạn: <span id="player-time">05:00</span></div>
+  <div class="clock">AI: <span id="ai-time">05:00</span></div>
+
+  <div id="board"></div>
+
+  <button onclick="newGame()">Ván mới</button>
+</div>
 
 </div>
 
 <script>
 
-/* ================= TAB SWITCH ================= */
-
+/* ===== TAB ===== */
 function showChat(){
   document.getElementById("chat-area").style.display="block";
   document.getElementById("chess-area").style.display="none";
 }
-
 function showChess(){
   document.getElementById("chat-area").style.display="none";
   document.getElementById("chess-area").style.display="block";
 }
 
-/* ================= CHAT ================= */
-
+/* ===== CHAT ===== */
 async function sendMessage(){
   const input=document.getElementById("message-input");
   const msg=input.value.trim();
@@ -137,38 +137,67 @@ async function sendMessage(){
   });
 
   const data=await res.json();
-  box.innerHTML += "<div><b>AI:</b> "+(data.reply || "Lỗi")+"</div>";
+  box.innerHTML += "<div><b>AI:</b> "+(data.reply||"Lỗi")+"</div>";
   input.value="";
   box.scrollTop=box.scrollHeight;
 }
 
 document.getElementById("message-input").addEventListener("keypress",function(e){
-  if(e.key==="Enter"){
-    sendMessage();
-  }
+  if(e.key==="Enter") sendMessage();
 });
 
-/* ================= CHESS ================= */
+/* ===== CHESS ===== */
 
-let board;
-let game;
-let engine;
+let board, game, engine;
 let playerColor;
+let playerTime = 300;
+let aiTime = 300;
+let timerInterval;
+let currentTurn;
+
+function formatTime(seconds){
+  const m = Math.floor(seconds/60);
+  const s = seconds%60;
+  return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+}
+
+function updateClocks(){
+  document.getElementById("player-time").innerText=formatTime(playerTime);
+  document.getElementById("ai-time").innerText=formatTime(aiTime);
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(currentTurn==="player"){
+      playerTime--;
+      if(playerTime<=0){ alert("Bạn hết giờ!"); clearInterval(timerInterval); }
+    }else{
+      aiTime--;
+      if(aiTime<=0){ alert("AI hết giờ!"); clearInterval(timerInterval); }
+    }
+    updateClocks();
+  },1000);
+}
 
 function newGame(){
   game = new Chess();
-  playerColor = Math.random() < 0.5 ? 'white' : 'black';
+  playerTime=300;
+  aiTime=300;
+  updateClocks();
 
-  board = Chessboard('board', {
-    draggable: true,
-    position: 'start',
-    orientation: playerColor,
-    onDrop: onDrop
+  playerColor = Math.random()<0.5?'white':'black';
+
+  board = Chessboard('board',{
+    draggable:true,
+    position:'start',
+    orientation:playerColor,
+    onDrop:onDrop
   });
 
   engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish@latest/stockfish.js");
 
-  engine.onmessage = function(event){
+  engine.onmessage=function(event){
     if(event.data.startsWith("bestmove")){
       const move = event.data.split(" ")[1];
       game.move({
@@ -177,29 +206,46 @@ function newGame(){
         promotion:'q'
       });
       board.position(game.fen());
+
+      currentTurn="player";
+      startTimer();
     }
   };
 
-  if(playerColor === 'black'){
+  if(playerColor==='white'){
+    currentTurn="player";
+  }else{
+    currentTurn="ai";
     makeAIMove();
   }
+
+  startTimer();
 }
 
-function onDrop(source, target){
-  const move = game.move({
-    from: source,
-    to: target,
+function onDrop(source,target){
+  if((game.turn()==='w' && playerColor!=='white') ||
+     (game.turn()==='b' && playerColor!=='black')){
+    return 'snapback';
+  }
+
+  const move=game.move({
+    from:source,
+    to:target,
     promotion:'q'
   });
 
-  if(move === null) return 'snapback';
+  if(move===null) return 'snapback';
 
-  setTimeout(makeAIMove, 200);
+  currentTurn="ai";
+  startTimer();
+
+  setTimeout(makeAIMove,200);
 }
 
 function makeAIMove(){
-  engine.postMessage("position fen " + game.fen());
-  engine.postMessage("go depth 15"); // tăng lên 20 nếu muốn mạnh hơn
+  const depth=document.getElementById("level").value;
+  engine.postMessage("position fen "+game.fen());
+  engine.postMessage("go depth "+depth);
 }
 
 newGame();
