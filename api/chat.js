@@ -49,8 +49,8 @@ const imageBase64 = body?.imageBase64;
       const description = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!description) {
-        return res.status(500).json({ reply: "Không phân tích được ảnh 🙁" });
-      }
+  return res.json({ reply: "Không phân tích được ảnh 😬" });
+}
 
       // Nếu có cả ảnh + text yêu cầu
       if (message) {
