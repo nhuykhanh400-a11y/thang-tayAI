@@ -246,6 +246,32 @@ function addMessage(text, type) {
 
 });
 </script>
+<script>
+async function sendMessage() {
+  const input = document.getElementById("messageInput").value;
 
+  if (!input) return;
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: input
+      })
+    });
+
+    const data = await res.json();
+    console.log("API trả về:", data);
+
+    alert(data.reply); // test xem có trả lời không
+
+  } catch (err) {
+    console.error("Lỗi:", err);
+  }
+}
+</script>
 </body>
 </html>
