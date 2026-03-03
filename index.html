@@ -324,5 +324,34 @@ function getLegalMoves(r,c){
 drawBoard();
 
 </script>
+  <script>
+const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
+
+engine.postMessage("uci");
+
+engine.onmessage = function(event) {
+    if (event.data.includes("bestmove")) {
+        const move = event.data.split(" ")[1];
+
+        const from = move.substring(0,2);
+        const to = move.substring(2,4);
+
+        const sr = 8 - parseInt(from[1]);
+        const sc = from.charCodeAt(0) - 97;
+
+        const tr = 8 - parseInt(to[1]);
+        const tc = to.charCodeAt(0) - 97;
+
+        movePiece(sr, sc, tr, tc);
+        renderBoard();
+    }
+};
+
+function makeAIMove() {
+    const fen = convertToFEN();
+    engine.postMessage("position fen " + fen);
+    engine.postMessage("go depth 15");
+}
+</script>
 </body>
 </html>
