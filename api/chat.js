@@ -11,7 +11,12 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { message, imageBase64 } = req.body;
+    const body = typeof req.body === "string" 
+  ? JSON.parse(req.body) 
+  : req.body;
+
+const message = body?.message;
+const imageBase64 = body?.imageBase64;
 
     // 👇 Nếu có ảnh → gọi Gemini Vision
     if (imageBase64) {
