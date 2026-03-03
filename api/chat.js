@@ -1,4 +1,4 @@
-process.env.OPENAI_API_KEY
+console.log("OpenAI key:", process.env.OPENAI_API_KEY);
 const Groq = require("groq-sdk");
 const fetch = require("node-fetch");
 
@@ -6,6 +6,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+process.env.OPENAI_API_KEY
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ reply: "Method not allowed" });
