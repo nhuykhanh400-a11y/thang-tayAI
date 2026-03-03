@@ -177,7 +177,26 @@ function movePiece(fr, fc, tr, tc) {
     position[fr].substring(fc + 1);
 }
 
+function isPathClear(fr, fc, tr, tc) {
+  const dr = Math.sign(tr - fr);
+  const dc = Math.sign(tc - fc);
+
+  let r = fr + dr;
+  let c = fc + dc;
+
+  while (r !== tr || c !== tc) {
+    if (position[r][c] !== ".") return false;
+    r += dr;
+    c += dc;
+  }
+
+  return true;
+}
+
 function isValidMove(piece, fr, fc, tr, tc) {
+
+  if (fr === tr && fc === tc) return false;
+
   const dr = tr - fr;
   const dc = tc - fc;
   const targetPiece = position[tr][tc];
@@ -189,34 +208,54 @@ function isValidMove(piece, fr, fc, tr, tc) {
 
   switch (piece.toLowerCase()) {
 
-    case "p":
+    case "p": {
       const dir = isWhite ? -1 : 1;
+
+      // đi 1 ô
       if (dc === 0 && dr === dir && targetPiece === ".") return true;
-      if (Math.abs(dc) === 1 && dr === dir && targetPiece !== ".") return true;
-      return false;
 
-    case "r":
-      if (dr === 0 || dc === 0) return true;
-      return false;
-
-    case "n":
+      // đi 2 ô lần đầu
       if (
+        dc === 0 &&
+        dr === 2 * dir &&
+        ((isWhite && fr === 6) || (!isWhite && fr === 1)) &&
+        position[fr + dir][fc] === "." &&
+        targetPiece === "."
+      ) return true;
+
+      // ăn chéo
+      if (Math.abs(dc) === 1 && dr === dir && targetPiece !== ".")
+        return true;
+
+      return false;
+    }
+
+    case "r": // Xe
+      if (dr === 0 || dc === 0) {
+        return isPathClear(fr, fc, tr, tc);
+      }
+      return false;
+
+    case "b": // Tượng
+      if (Math.abs(dr) === Math.abs(dc)) {
+        return isPathClear(fr, fc, tr, tc);
+      }
+      return false;
+
+    case "q": // Hậu
+      if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) {
+        return isPathClear(fr, fc, tr, tc);
+      }
+      return false;
+
+    case "n": // Mã
+      return (
         (Math.abs(dr) === 2 && Math.abs(dc) === 1) ||
         (Math.abs(dr) === 1 && Math.abs(dc) === 2)
-      ) return true;
-      return false;
+      );
 
-    case "b":
-      if (Math.abs(dr) === Math.abs(dc)) return true;
-      return false;
-
-    case "q":
-      if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) return true;
-      return false;
-
-    case "k":
-      if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) return true;
-      return false;
+    case "k": // Vua
+      return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
   }
 
   return false;
