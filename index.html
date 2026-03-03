@@ -55,7 +55,6 @@ button{
 .black-piece{
   color:black;
 }
-
 </style>
 </head>
 <body>
@@ -159,14 +158,18 @@ highlightSquare(r,c);
 return;
 }
 
+if(isLegalMove(selected.row,selected.col,r,c)){
 movePiece(selected.row,selected.col,r,c);
-selected=null;
-
 currentTurn = currentTurn==="white"?"black":"white";
+selected=null;
 drawBoard();
 
 if(currentTurn!==playerColor){
 makeAIMove();
+}
+}else{
+selected=null;
+drawBoard();
 }
 }
 
@@ -179,14 +182,78 @@ board.children[index].classList.add("selected");
 }
 
 function movePiece(sr,sc,tr,tc){
-const piece=gameState[sr][sc];
-gameState[tr][tc]=piece;
+gameState[tr][tc]=gameState[sr][sc];
 gameState[sr][sc]="";
+}
+
+function inside(r,c){
+return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function isLegalMove(sr,sc,tr,tc){
+
+if(!inside(tr,tc)) return false;
+
+const piece=gameState[sr][sc];
+const target=gameState[tr][tc];
+
+if(target && (piece===piece.toUpperCase()) === (target===target.toUpperCase()))
+return false;
+
+const dr=tr-sr;
+const dc=tc-sc;
+
+switch(piece.toLowerCase()){
+
+case "p":
+const dir = piece===piece.toUpperCase()?-1:1;
+if(dc===0 && !target){
+if(dr===dir) return true;
+}
+if(Math.abs(dc)===1 && dr===dir && target) return true;
+break;
+
+case "r":
+if(sr===tr || sc===tc) return pathClear(sr,sc,tr,tc);
+break;
+
+case "b":
+if(Math.abs(dr)===Math.abs(dc)) return pathClear(sr,sc,tr,tc);
+break;
+
+case "q":
+if(sr===tr || sc===tc || Math.abs(dr)===Math.abs(dc))
+return pathClear(sr,sc,tr,tc);
+break;
+
+case "n":
+if((Math.abs(dr)===2 && Math.abs(dc)===1) ||
+(Math.abs(dr)===1 && Math.abs(dc)===2)) return true;
+break;
+
+case "k":
+if(Math.abs(dr)<=1 && Math.abs(dc)<=1) return true;
+break;
+}
+
+return false;
+}
+
+function pathClear(sr,sc,tr,tc){
+let dr=Math.sign(tr-sr);
+let dc=Math.sign(tc-sc);
+let r=sr+dr;
+let c=sc+dc;
+while(r!==tr || c!==tc){
+if(gameState[r][c]!=="") return false;
+r+=dr;
+c+=dc;
+}
+return true;
 }
 
 function convertToFEN(){
 let fen="";
-
 for(let r=0;r<8;r++){
 let empty=0;
 for(let c=0;c<8;c++){
@@ -201,7 +268,6 @@ fen+=piece;
 if(empty>0) fen+=empty;
 if(r<7) fen+="/";
 }
-
 fen += (currentTurn==="white"?" w ":" b ") + "- - 0 1";
 return fen;
 }
@@ -224,7 +290,6 @@ const tr=8-parseInt(to[1]);
 const tc=to.charCodeAt(0)-97;
 
 movePiece(sr,sc,tr,tc);
-
 currentTurn = currentTurn==="white"?"black":"white";
 drawBoard();
 }
@@ -239,6 +304,5 @@ engine.postMessage("go depth 12");
 startGame("white");
 
 </script>
-
 </body>
 </html>
