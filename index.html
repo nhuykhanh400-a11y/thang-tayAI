@@ -4,13 +4,19 @@
 <meta charset="UTF-8">
 <title>Chess</title>
 <style>
-/* GIỮ NGUYÊN CSS */
 body{
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
   height:100vh;
   background:#222;
+  color:white;
+  font-family:sans-serif;
+}
+
+#controls{
+  margin-bottom:15px;
 }
 
 #board{
@@ -27,39 +33,32 @@ body{
   align-items:center;
   font-size:40px;
   cursor:pointer;
-  position:relative;
 }
 
 .light{ background:#f0d9b5; }
 .dark{ background:#b58863; }
 
-.highlight{
-  background:#fff176 !important;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
-}
-
-.capture{
-  background:#ff6b6b !important;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
-}
-
 .selected{
   outline:3px solid cyan;
 }
 
-.piece{
-  user-select:none;
+button{
+  padding:8px 16px;
+  margin:0 5px;
+  cursor:pointer;
 }
 </style>
 </head>
 <body>
 
+<div id="controls">
+  <button onclick="startGame('white')">Chơi Trắng</button>
+  <button onclick="startGame('black')">Chơi Đen</button>
+</div>
+
 <div id="board"></div>
 
 <script>
-
-/* ======= TOÀN BỘ CODE CŨ GIỮ NGUYÊN ======= */
-/* (mình không sửa gì phần logic cờ của bạn) */
 
 const board = document.getElementById("board");
 
@@ -68,7 +67,14 @@ const pieces = {
   R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
 };
 
-let gameState = [
+let playerColor="white";
+let currentTurn="white";
+let selected=null;
+
+let gameState;
+
+function resetBoard(){
+gameState=[
 ["r","n","b","q","k","b","n","r"],
 ["p","p","p","p","p","p","p","p"],
 ["","","","","","","",""],
@@ -78,125 +84,132 @@ let gameState = [
 ["P","P","P","P","P","P","P","P"],
 ["R","N","B","Q","K","B","N","R"]
 ];
+}
 
-let selected = null;
-let currentTurn = "white";
+function startGame(color){
+playerColor=color;
+currentTurn="white";
+resetBoard();
+drawBoard();
+
+if(playerColor==="black"){
+makeAIMove(); // nếu chọn đen thì máy đi trước
+}
+}
 
 function drawBoard(){
-  board.innerHTML="";
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const square=document.createElement("div");
-      square.classList.add("square");
-      square.classList.add((r+c)%2==0?"light":"dark");
-      square.dataset.row=r;
-      square.dataset.col=c;
+board.innerHTML="";
 
-      const piece=gameState[r][c];
-      if(piece){
-        const span=document.createElement("span");
-        span.textContent=pieces[piece];
-        span.classList.add("piece");
-        square.appendChild(span);
-      }
+for(let r=0;r<8;r++){
+for(let c=0;c<8;c++){
 
-      square.addEventListener("click",()=>handleClick(r,c));
-      board.appendChild(square);
-    }
-  }
+let displayRow = playerColor==="white" ? r : 7-r;
+let displayCol = playerColor==="white" ? c : 7-c;
+
+const square=document.createElement("div");
+square.classList.add("square");
+square.classList.add((r+c)%2==0?"light":"dark");
+square.dataset.row=displayRow;
+square.dataset.col=displayCol;
+
+const piece=gameState[displayRow][displayCol];
+if(piece){
+square.textContent=pieces[piece];
+}
+
+square.addEventListener("click",()=>handleClick(displayRow,displayCol));
+board.appendChild(square);
+}
+}
 }
 
 function handleClick(r,c){
 
-  if(currentTurn !== "white") return; // 👈 CHỈ CHO TRẮNG ĐI
+if(currentTurn!==playerColor) return;
 
-  const piece = gameState[r][c];
+const piece=gameState[r][c];
 
-  if(!selected){
-    if(!piece) return;
-    if(piece===piece.toLowerCase()) return;
+if(!selected){
+if(!piece) return;
 
-    selected = {row:r,col:c};
-    return;
-  }
+if(playerColor==="white" && piece===piece.toLowerCase()) return;
+if(playerColor==="black" && piece===piece.toUpperCase()) return;
 
-  movePiece(selected.row,selected.col,r,c);
-  selected=null;
-  currentTurn="black";
-  drawBoard();
+selected={row:r,col:c};
+return;
+}
 
-  makeAIMove(); // 👈 GỌI AI SAU KHI TRẮNG ĐI
+movePiece(selected.row,selected.col,r,c);
+selected=null;
+
+currentTurn = currentTurn==="white"?"black":"white";
+drawBoard();
+
+if(currentTurn!==playerColor){
+makeAIMove();
+}
 }
 
 function movePiece(sr,sc,tr,tc){
-  const piece = gameState[sr][sc];
-  gameState[tr][tc]=piece;
-  gameState[sr][sc]="";
+const piece=gameState[sr][sc];
+gameState[tr][tc]=piece;
+gameState[sr][sc]="";
 }
 
 function convertToFEN(){
-    let fen = "";
+let fen="";
 
-    for(let r=0; r<8; r++){
-        let empty = 0;
-
-        for(let c=0; c<8; c++){
-            const piece = gameState[r][c];
-
-            if(piece === ""){
-                empty++;
-            } else {
-                if(empty > 0){
-                    fen += empty;
-                    empty = 0;
-                }
-                fen += piece;
-            }
-        }
-
-        if(empty > 0) fen += empty;
-        if(r < 7) fen += "/";
-    }
-
-    fen += " b - - 0 1"; // 👈 ĐẾN LƯỢT ĐEN
-    return fen;
+for(let r=0;r<8;r++){
+let empty=0;
+for(let c=0;c<8;c++){
+const piece=gameState[r][c];
+if(piece===""){
+empty++;
+}else{
+if(empty>0){fen+=empty; empty=0;}
+fen+=piece;
+}
+}
+if(empty>0) fen+=empty;
+if(r<7) fen+="/";
 }
 
-drawBoard();
+fen += (currentTurn==="white"?" w ":" b ") + "- - 0 1";
+return fen;
+}
 
-</script>
-
-<!-- ===== PHẦN AI ĐÃ SỬA ===== -->
-
-<script>
 const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
-
 engine.postMessage("uci");
 
-engine.onmessage = function(event) {
-    if (event.data.includes("bestmove")) {
-        const move = event.data.split(" ")[1];
+engine.onmessage = function(event){
+if(event.data.includes("bestmove")){
+const move=event.data.split(" ")[1];
+if(move==="(none)") return;
 
-        const from = move.substring(0,2);
-        const to = move.substring(2,4);
+const from=move.substring(0,2);
+const to=move.substring(2,4);
 
-        const sr = 8 - parseInt(from[1]);
-        const sc = from.charCodeAt(0) - 97;
+const sr=8-parseInt(from[1]);
+const sc=from.charCodeAt(0)-97;
 
-        const tr = 8 - parseInt(to[1]);
-        const tc = to.charCodeAt(0) - 97;
+const tr=8-parseInt(to[1]);
+const tc=to.charCodeAt(0)-97;
 
-        movePiece(sr, sc, tr, tc);
-        currentTurn="white";
-        drawBoard();
-    }
+movePiece(sr,sc,tr,tc);
+
+currentTurn = currentTurn==="white"?"black":"white";
+drawBoard();
+}
 };
 
-function makeAIMove() {
-    const fen = convertToFEN();
-    engine.postMessage("position fen " + fen);
-    engine.postMessage("go depth 15");
+function makeAIMove(){
+const fen=convertToFEN();
+engine.postMessage("position fen "+fen);
+engine.postMessage("go depth 15");
 }
+
+startGame("white");
+
 </script>
 
 </body>
