@@ -1,152 +1,179 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>AI người Tây</title>
+<meta charset="UTF-8">
+<title>AI người Tây</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0f172a;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
 
-    h1 {
-      color: white;
-      padding: 20px;
-      margin: 0;
-    }
+h1{
+  color:white;
+  padding:20px;
+  margin:0;
+}
 
-    #chat-box {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+#chat-box{
+  flex:1;
+  padding:20px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
 
-    .user-message {
-      align-self: flex-end;
-      background: #2563eb;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 15px 15px 0 15px;
-      max-width: 70%;
-    }
+.message{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+}
 
-    .ai-message {
-      align-self: flex-start;
-      background: #1e293b;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 15px 15px 15px 0;
-      max-width: 70%;
-    }
+.avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  flex-shrink:0;
+}
 
-    #input-area {
-      display: flex;
-      padding: 15px;
-      background: #111827;
-    }
+.bubble{
+  padding:10px 15px;
+  border-radius:15px;
+  max-width:70%;
+  color:white;
+}
 
-    #message-input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      outline: none;
-      font-size: 16px;
-    }
+.user .bubble{
+  background:#2563eb;
+  border-radius:15px 15px 0 15px;
+}
 
-    #send-btn {
-      margin-left: 10px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 10px;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-      font-size: 16px;
-    }
+.ai .bubble{
+  background:#1e293b;
+  border-radius:15px 15px 15px 0;
+}
 
-    #send-btn:hover {
-      background: #1d4ed8;
-    }
-  </style>
+.user{
+  align-self:flex-end;
+  flex-direction:row-reverse;
+}
+
+#input-area{
+  display:flex;
+  padding:15px;
+  background:#111827;
+}
+
+#message-input{
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  outline:none;
+  font-size:16px;
+}
+
+#send-btn{
+  margin-left:10px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
+  cursor:pointer;
+  font-size:16px;
+}
+</style>
 </head>
 
 <body>
 
-  <h1>AI người Tây</h1>
+<h1>AI người Tây</h1>
 
-  <div id="chat-box"></div>
+<div id="chat-box"></div>
 
-  <div id="input-area">
-    <input 
-      type="text" 
-      id="message-input" 
-      placeholder="Nhập tin nhắn..."
-      autocomplete="off"
-    >
-    <button id="send-btn">Gửi</button>
-  </div>
+<div id="input-area">
+  <input type="text" id="message-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+  <button id="send-btn">Gửi</button>
+</div>
 
-  <script>
-    const chatBox = document.getElementById("chat-box");
-    const input = document.getElementById("message-input");
-    const sendBtn = document.getElementById("send-btn");
+<script>
+const chatBox = document.getElementById("chat-box");
+const input = document.getElementById("message-input");
+const sendBtn = document.getElementById("send-btn");
 
-    function addMessage(role, text) {
-      const messageDiv = document.createElement("div");
-      messageDiv.className = role === "user" ? "user-message" : "ai-message";
-      messageDiv.innerText = text;
-      chatBox.appendChild(messageDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+function addMessage(role, text){
+  const messageDiv = document.createElement("div");
+  messageDiv.className = "message " + role;
 
-    async function sendMessage() {
-      const message = input.value.trim();
-      if (!message) return;
+  const avatar = document.createElement("img");
+  avatar.className = "avatar";
 
-      addMessage("user", message);
-      input.value = "";
+  if(role === "ai"){
+    avatar.src = "https://cdn-icons-png.flaticon.com/512/4712/4712027.png";
+  }else{
+    avatar.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+  }
 
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ message })
-        });
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerText = text;
 
-        const data = await res.json();
+  messageDiv.appendChild(avatar);
+  messageDiv.appendChild(bubble);
 
-        if (data.reply) {
-          addMessage("ai", data.reply);
-        } else {
-          addMessage("ai", "Có lỗi xảy ra...");
-        }
+  chatBox.appendChild(messageDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-      } catch (err) {
-        addMessage("ai", "Lỗi kết nối server.");
-        console.error(err);
-      }
-    }
+async function sendMessage(){
+  const message = input.value.trim();
+  if(!message) return;
 
-    sendBtn.addEventListener("click", sendMessage);
+  addMessage("user", message);
+  input.value = "";
 
-    // Nhấn Enter để gửi
-    input.addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        sendMessage();
-      }
+  const loading = document.createElement("div");
+  loading.className = "message ai";
+  loading.innerHTML = `
+    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png">
+    <div class="bubble">AI đang suy nghĩ...</div>
+  `;
+  chatBox.appendChild(loading);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try{
+    const res = await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message})
     });
-  </script>
+
+    const data = await res.json();
+    chatBox.removeChild(loading);
+
+    addMessage("ai", data.reply || "Có lỗi xảy ra.");
+
+  }catch(err){
+    chatBox.removeChild(loading);
+    addMessage("ai","Lỗi kết nối server.");
+  }
+}
+
+sendBtn.addEventListener("click", sendMessage);
+
+input.addEventListener("keypress", function(e){
+  if(e.key === "Enter"){
+    sendMessage();
+  }
+});
+</script>
 
 </body>
 </html>
