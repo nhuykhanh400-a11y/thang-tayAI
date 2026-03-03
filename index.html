@@ -3,118 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Chat + Cờ Vua</title>
+<title>AI Cờ Vua Pro</title>
 
 <link rel="stylesheet"
-href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
+href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js"></script>
 
 <style>
 body{
   margin:0;
-  display:flex;
+  background:#111;
+  color:white;
   font-family:Arial;
-  height:100vh;
-  background:#121212;
-  color:white;
+  text-align:center;
 }
-.sidebar{
-  width:200px;
-  background:#1f1f1f;
-  padding:20px;
-}
-.sidebar button{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  background:#333;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-.main{
-  flex:1;
-  padding:20px;
-}
-.hidden{ display:none; }
 #board{
-  width:500px;
+  width:480px;
   margin:20px auto;
 }
-.timers{
-  text-align:center;
+.controls{
+  margin-top:10px;
+}
+select,button{
+  padding:6px;
+  margin:5px;
+}
+.timer{
   font-size:20px;
+  margin-top:10px;
+}
+.moves{
+  max-height:150px;
+  overflow-y:auto;
+  background:#222;
+  padding:10px;
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="sidebar">
-  <button onclick="showChat()">💬 Chat</button>
-  <button onclick="showChess()">♟ Cờ vua</button>
+<h2>♟ AI Cờ Vua Pro</h2>
+
+<div>
+Cấp độ:
+<select id="level">
+<option value="5">Dễ</option>
+<option value="10" selected>Trung bình</option>
+<option value="18">Khó</option>
+<option value="22">Siêu khó</option>
+</select>
+
+<button onclick="newGame()">Ván mới</button>
 </div>
 
-<div class="main">
+<div id="board"></div>
 
-<!-- CHAT -->
-<div id="chatSection">
-  <h2>Chat Demo</h2>
-  <div id="chatBox"></div>
-  <input id="chatInput" placeholder="Nhập..." 
-  onkeydown="if(event.key==='Enter') sendMessage()">
-  <button onclick="sendMessage()">Gửi</button>
+<div class="timer">
+⚪ Trắng: <span id="whiteTimer">0:00</span> |
+⚫ Đen: <span id="blackTimer">0:00</span>
 </div>
 
-<!-- CHESS -->
-<div id="chessSection" class="hidden">
-  <h2 style="text-align:center">Bàn Cờ</h2>
-  <div id="board"></div>
-  <div class="timers">
-    ⚪ Trắng: <span id="whiteTimer">0:00</span> |
-    ⚫ Đen: <span id="blackTimer">0:00</span>
-  </div>
-</div>
-
-</div>
+<div class="moves" id="moveHistory"></div>
 
 <script>
 
-//////////////// CHAT //////////////////
-
-function sendMessage(){
-  const input=document.getElementById("chatInput");
-  if(!input.value.trim()) return;
-
-  document.getElementById("chatBox").innerHTML +=
-  "<div><b>Bạn:</b> "+input.value+"</div>";
-
-  setTimeout(()=>{
-    document.getElementById("chatBox").innerHTML +=
-    "<div><b>AI:</b> Tôi đang chạy bản demo 😎</div>";
-  },500);
-
-  input.value="";
-}
-
-function showChat(){
-  document.getElementById("chatSection").classList.remove("hidden");
-  document.getElementById("chessSection").classList.add("hidden");
-}
-
-function showChess(){
-  document.getElementById("chatSection").classList.add("hidden");
-  document.getElementById("chessSection").classList.remove("hidden");
-  setTimeout(initBoard,100);
-}
-
-//////////////// CHESS //////////////////
-
-let board=null;
-let game=new Chess();
+let board, game, engine;
 
 let whiteTime=0;
 let blackTime=0;
@@ -141,18 +100,22 @@ function startTimer(){
   },1000);
 }
 
-function initBoard(){
-  if(board!==null) return;
-
-  board=Chessboard('board',{
-    draggable:true,
-    position:'start',
-    pieceTheme:
-'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
-    onDrop:onDrop
-  });
-
+function newGame(){
+  game=new Chess();
+  board.position('start');
+  document.getElementById("moveHistory").innerHTML="";
+  whiteTime=0;
+  blackTime=0;
+  currentTurn="white";
   startTimer();
+}
+
+function addMove(move){
+  let history=document.getElementById("moveHistory");
+  history.innerHTML += move+" ";
+  history.scrollTop=history.scrollHeight;
+
+  localStorage.setItem("lastGame", game.pgn());
 }
 
 function onDrop(source,target){
@@ -164,20 +127,48 @@ function onDrop(source,target){
 
   if(move===null) return 'snapback';
 
+  addMove(move.san);
+
   currentTurn="black";
-  setTimeout(aiMove,500);
+  setTimeout(aiMove,200);
 }
 
 function aiMove(){
-  let moves=game.moves();
-  if(moves.length===0) return;
+  let level=document.getElementById("level").value;
 
-  let randomMove=moves[Math.floor(Math.random()*moves.length)];
-  game.move(randomMove);
-  board.position(game.fen());
+  engine.postMessage("position fen "+game.fen());
+  engine.postMessage("go depth "+level);
 
-  currentTurn="white";
+  engine.onmessage=function(event){
+    if(event.data.startsWith("bestmove")){
+      let bestMove=event.data.split(" ")[1];
+
+      game.move({
+        from:bestMove.substring(0,2),
+        to:bestMove.substring(2,4),
+        promotion:'q'
+      });
+
+      board.position(game.fen());
+      addMove(bestMove);
+
+      currentTurn="white";
+    }
+  };
 }
+
+board=Chessboard('board',{
+  draggable:true,
+  position:'start',
+  pieceTheme:
+'https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
+  onDrop:onDrop
+});
+
+game=new Chess();
+engine=new Worker("https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js");
+
+startTimer();
 
 </script>
 
