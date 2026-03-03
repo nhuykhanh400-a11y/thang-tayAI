@@ -23,34 +23,28 @@ const imageBase64 = body?.imageBase64;
     if (imageBase64) {
 
       const geminiResponse = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+  "https://api.openai.com/v1/responses",
   {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
     },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: "Mô tả bức ảnh này" }
-          ]
-        }
-      ]
+      model: "gpt-4.1-mini",
+      input: "Mô tả bức ảnh này"
     })
   }
 );
 
-      const geminiData = await geminiResponse.json();
+const geminiData = await geminiResponse.json();
 
 if (!geminiResponse.ok) {
-  console.error("Gemini error:", geminiData);
-  return res.status(400).json({
-    reply: "Gemini API lỗi",
-    error: geminiData
-  });
+  console.error(geminiData);
+  return res.status(400).json({ reply: "Gemini API lỗi", error: geminiData });
 }
-      const description = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+const description = geminiData.output_text;
 
       if (!description) {
   return res.json({ reply: "Không phân tích được ảnh 😬" });
