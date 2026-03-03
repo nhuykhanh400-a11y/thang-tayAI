@@ -3,14 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Cờ Vua Pro</title>
+<title>AI Cờ Vua + Chat</title>
 
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js"></script>
 
 <style>
@@ -19,38 +14,80 @@ body{
   background:#111;
   color:white;
   font-family:Arial;
-  text-align:center;
+  display:flex;
 }
+
+.left{
+  width:60%;
+  text-align:center;
+  padding:20px;
+}
+
+.right{
+  width:40%;
+  border-left:1px solid #333;
+  display:flex;
+  flex-direction:column;
+}
+
 #board{
   width:480px;
+  height:480px;
   margin:20px auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  border:4px solid #555;
 }
+
+.square{
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:38px;
+  cursor:pointer;
+}
+
+.light{ background:#f0d9b5; color:black; }
+.dark{ background:#b58863; color:black; }
+
 .controls{
-  margin-top:10px;
+  margin:10px;
 }
-select,button{
-  padding:6px;
-  margin:5px;
-}
+
 .timer{
   font-size:20px;
   margin-top:10px;
 }
-.moves{
-  max-height:150px;
-  overflow-y:auto;
-  background:#222;
+
+#chat{
+  flex:1;
   padding:10px;
-  margin-top:10px;
+  overflow-y:auto;
+}
+
+#chatInput{
+  display:flex;
+}
+
+#chatInput input{
+  flex:1;
+  padding:10px;
+}
+
+#chatInput button{
+  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>♟ AI Cờ Vua Pro</h2>
+<div class="left">
+<h2>♟ AI Cờ Vua</h2>
 
-<div>
+<div class="controls">
 Cấp độ:
 <select id="level">
 <option value="5">Dễ</option>
@@ -69,16 +106,26 @@ Cấp độ:
 ⚫ Đen: <span id="blackTimer">0:00</span>
 </div>
 
-<div class="moves" id="moveHistory"></div>
+</div>
+
+<div class="right">
+<h3 style="text-align:center;">💬 Chat AI</h3>
+<div id="chat"></div>
+
+<div id="chatInput">
+<input type="text" id="userMsg" placeholder="Nhắn AI...">
+<button onclick="sendMsg()">Gửi</button>
+</div>
+</div>
 
 <script>
+let game = new Chess();
+let engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js");
 
-let board, game, engine;
-
+let selectedSquare=null;
 let whiteTime=0;
 let blackTime=0;
 let currentTurn="white";
-let timerInterval=null;
 
 function formatTime(sec){
   let m=Math.floor(sec/60);
@@ -86,90 +133,114 @@ function formatTime(sec){
   return m+":"+(s<10?"0":"")+s;
 }
 
-function startTimer(){
-  if(timerInterval) clearInterval(timerInterval);
+setInterval(()=>{
+  if(currentTurn==="white"){
+    whiteTime++;
+    document.getElementById("whiteTimer").innerText=formatTime(whiteTime);
+  }else{
+    blackTime++;
+    document.getElementById("blackTimer").innerText=formatTime(blackTime);
+  }
+},1000);
 
-  timerInterval=setInterval(()=>{
-    if(currentTurn==="white"){
-      whiteTime++;
-      document.getElementById("whiteTimer").innerText=formatTime(whiteTime);
-    }else{
-      blackTime++;
-      document.getElementById("blackTimer").innerText=formatTime(blackTime);
+function drawBoard(){
+  const board=document.getElementById("board");
+  board.innerHTML="";
+  let position=game.board();
+
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      let square=document.createElement("div");
+      square.className="square "+((r+c)%2==0?"light":"dark");
+      square.dataset.row=r;
+      square.dataset.col=c;
+
+      let piece=position[r][c];
+      if(piece){
+        square.innerText=getUnicode(piece);
+      }
+
+      square.onclick=()=>handleClick(r,c);
+      board.appendChild(square);
     }
-  },1000);
+  }
 }
 
-function newGame(){
-  game=new Chess();
-  board.position('start');
-  document.getElementById("moveHistory").innerHTML="";
-  whiteTime=0;
-  blackTime=0;
-  currentTurn="white";
-  startTimer();
+function getUnicode(piece){
+  const map={
+    p:{w:"♙",b:"♟"},
+    r:{w:"♖",b:"♜"},
+    n:{w:"♘",b:"♞"},
+    b:{w:"♗",b:"♝"},
+    q:{w:"♕",b:"♛"},
+    k:{w:"♔",b:"♚"}
+  };
+  return map[piece.type][piece.color];
 }
 
-function addMove(move){
-  let history=document.getElementById("moveHistory");
-  history.innerHTML += move+" ";
-  history.scrollTop=history.scrollHeight;
+function handleClick(r,c){
+  let square=String.fromCharCode(97+c)+(8-r);
 
-  localStorage.setItem("lastGame", game.pgn());
-}
+  if(!selectedSquare){
+    selectedSquare=square;
+  }else{
+    let move=game.move({
+      from:selectedSquare,
+      to:square,
+      promotion:'q'
+    });
 
-function onDrop(source,target){
-  let move=game.move({
-    from:source,
-    to:target,
-    promotion:'q'
-  });
+    selectedSquare=null;
 
-  if(move===null) return 'snapback';
-
-  addMove(move.san);
-
-  currentTurn="black";
-  setTimeout(aiMove,200);
+    if(move){
+      currentTurn="black";
+      drawBoard();
+      setTimeout(aiMove,200);
+    }
+  }
 }
 
 function aiMove(){
   let level=document.getElementById("level").value;
-
   engine.postMessage("position fen "+game.fen());
   engine.postMessage("go depth "+level);
 
-  engine.onmessage=function(event){
-    if(event.data.startsWith("bestmove")){
-      let bestMove=event.data.split(" ")[1];
-
+  engine.onmessage=function(e){
+    if(e.data.startsWith("bestmove")){
+      let best=e.data.split(" ")[1];
       game.move({
-        from:bestMove.substring(0,2),
-        to:bestMove.substring(2,4),
+        from:best.substring(0,2),
+        to:best.substring(2,4),
         promotion:'q'
       });
-
-      board.position(game.fen());
-      addMove(bestMove);
-
       currentTurn="white";
+      drawBoard();
     }
   };
 }
 
-board=Chessboard('board',{
-  draggable:true,
-  position:'start',
-  pieceTheme:
-'https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
-  onDrop:onDrop
-});
+function newGame(){
+  game.reset();
+  whiteTime=0;
+  blackTime=0;
+  currentTurn="white";
+  drawBoard();
+}
 
-game=new Chess();
-engine=new Worker("https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js");
+function sendMsg(){
+  let input=document.getElementById("userMsg");
+  let chat=document.getElementById("chat");
 
-startTimer();
+  if(!input.value) return;
 
+  chat.innerHTML+="<div>👤 "+input.value+"</div>";
+  chat.innerHTML+="<div>🤖 AI: Mình đang tập trung đánh cờ 😄</div>";
+  chat.scrollTop=chat.scrollHeight;
+
+  input.value="";
+}
+
+drawBoard();
 </script>
 
 </body>
