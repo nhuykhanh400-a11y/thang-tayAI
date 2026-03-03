@@ -25,6 +25,7 @@ body{
   justify-content:center;
   align-items:center;
   font-size:40px;
+  cursor:pointer;
 }
 
 .light{ background:#f0d9b5; }
@@ -33,8 +34,9 @@ body{
 .highlight{ background:yellow !important; }
 .capture{ background:red !important; }
 
+.selected{ outline:3px solid cyan; }
+
 .piece{
-  cursor:grab;
   user-select:none;
 }
 </style>
@@ -81,41 +83,56 @@ function drawBoard(){
         const span=document.createElement("span");
         span.textContent=pieces[piece];
         span.classList.add("piece");
-        span.draggable=true;
-
-        span.addEventListener("dragstart",(e)=>{
-          selected={row:r,col:c};
-          highlightMoves(r,c);
-        });
-
         square.appendChild(span);
       }
 
-      square.addEventListener("dragover",e=>e.preventDefault());
-
-      square.addEventListener("drop",()=>{
-        if(!selected) return;
-
-        const moves=getLegalMoves(selected.row,selected.col);
-        if(moves.some(m=>m.r==r && m.c==c)){
-          gameState[r][c]=gameState[selected.row][selected.col];
-          gameState[selected.row][selected.col]="";
-          currentTurn=currentTurn=="white"?"black":"white";
-        }
-
-        selected=null;
-        clearHighlight();
-        drawBoard();
-      });
+      square.addEventListener("click",()=>handleClick(r,c));
 
       board.appendChild(square);
     }
   }
 }
 
+function handleClick(r,c){
+
+  const piece = gameState[r][c];
+
+  // Nếu chưa chọn quân
+  if(!selected){
+    if(!piece) return;
+
+    if(currentTurn=="white" && piece==piece.toLowerCase()) return;
+    if(currentTurn=="black" && piece==piece.toUpperCase()) return;
+
+    selected = {row:r,col:c};
+    highlightMoves(r,c);
+    highlightSelected(r,c);
+    return;
+  }
+
+  // Nếu đã chọn rồi
+
+  const moves = getLegalMoves(selected.row,selected.col);
+
+  if(moves.some(m=>m.r==r && m.c==c)){
+    gameState[r][c] = gameState[selected.row][selected.col];
+    gameState[selected.row][selected.col] = "";
+    currentTurn = currentTurn=="white"?"black":"white";
+  }
+
+  selected = null;
+  clearHighlight();
+  drawBoard();
+}
+
+function highlightSelected(r,c){
+  const sq=document.querySelector(`[data-row='${r}'][data-col='${c}']`);
+  sq.classList.add("selected");
+}
+
 function clearHighlight(){
   document.querySelectorAll(".square").forEach(s=>{
-    s.classList.remove("highlight","capture");
+    s.classList.remove("highlight","capture","selected");
   });
 }
 
@@ -134,9 +151,6 @@ function highlightMoves(r,c){
 function getLegalMoves(r,c){
   const piece=gameState[r][c];
   if(!piece) return [];
-
-  if(currentTurn=="white" && piece==piece.toLowerCase()) return [];
-  if(currentTurn=="black" && piece==piece.toUpperCase()) return [];
 
   const moves=[];
   const isWhite=piece==piece.toUpperCase();
@@ -165,7 +179,7 @@ function getLegalMoves(r,c){
     case "p":
       if(inside(r+dir,c) && !gameState[r+dir][c])
         moves.push({r:r+dir,c:c});
-      if((isWhite&&r==6)||( !isWhite&&r==1)){
+      if((isWhite&&r==6)||(!isWhite&&r==1)){
         if(!gameState[r+dir][c]&&!gameState[r+2*dir][c])
           moves.push({r:r+2*dir,c:c});
       }
