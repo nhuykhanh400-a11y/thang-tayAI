@@ -1,4 +1,4 @@
-console.log("API KEY:", process.env.GEMINI_API_KEY)
+process.env.OPENAI_API_KEY
 const Groq = require("groq-sdk");
 const fetch = require("node-fetch");
 
@@ -19,35 +19,50 @@ module.exports = async function handler(req, res) {
 const message = body?.message;
 const imageBase64 = body?.imageBase64;
 
-    // 👇 Nếu có ảnh → gọi Gemini Vision
-    if (imageBase64) {
+    // Nếu có ảnh
+if (imageBase64) {
 
-      const geminiResponse = await fetch(
-  "https://api.openai.com/v1/responses",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: "gpt-4.1-mini",
-      input: "Mô tả bức ảnh này"
-    })
+  const openaiResponse = await fetch(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: message || "Mô tả bức ảnh này" },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`
+                }
+              }
+            ]
+          }
+        ]
+      })
+    }
+  );
+
+  const openaiData = await openaiResponse.json();
+
+  if (!openaiResponse.ok) {
+    console.error(openaiData);
+    return res.status(400).json({
+      reply: "OpenAI Vision lỗi",
+      error: openaiData
+    });
   }
-);
 
-const geminiData = await geminiResponse.json();
+  const description = openaiData.choices[0].message.content;
 
-if (!geminiResponse.ok) {
-  console.error(geminiData);
-  return res.status(400).json({ reply: "Gemini API lỗi", error: geminiData });
-}
-
-const description = geminiData.output_text;
-
-      if (!description) {
-  return res.json({ reply: "Không phân tích được ảnh 😬" });
+  return res.json({ reply: description });
 }
 
       // Nếu có cả ảnh + text yêu cầu
