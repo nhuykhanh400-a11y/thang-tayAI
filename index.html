@@ -31,6 +31,7 @@ body {
   align-items: center;
   font-size: 40px;
   cursor: grab;
+  user-select: none;
 }
 
 .light { background: #f0d9b5; }
@@ -65,16 +66,40 @@ const startPosition = [
   "RNBQKBNR"
 ];
 
-// ===== FIX DRAG & DROP CHUẨN =====
-
 let draggedPiece = null;
 
-// Khi bắt đầu kéo
-document.addEventListener("dragstart", function(e) {
+function createBoard() {
+  board.innerHTML = "";
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.createElement("div");
+      square.classList.add("square");
+      square.classList.add((row + col) % 2 === 0 ? "light" : "dark");
+
+      const piece = startPosition[row][col];
+      if (piece !== ".") {
+        square.textContent = pieces[piece];
+        square.draggable = true;
+      }
+
+      square.dataset.row = row;
+      square.dataset.col = col;
+
+      board.appendChild(square);
+    }
+  }
+}
+
+createBoard();
+
+
+// ===== DRAG & DROP FIX HOÀN CHỈNH =====
+
+board.addEventListener("dragstart", function(e) {
   if (e.target.classList.contains("square") && e.target.textContent !== "") {
     draggedPiece = e.target;
 
-    // Xóa bóng mờ mặc định
+    // Ẩn bóng mờ mặc định
     const img = new Image();
     img.src =
       "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjwvc3ZnPg==";
@@ -82,29 +107,27 @@ document.addEventListener("dragstart", function(e) {
   }
 });
 
-// Cho phép thả
-document.addEventListener("dragover", function(e) {
+board.addEventListener("dragover", function(e) {
   e.preventDefault();
 });
 
-// Khi thả quân
-document.addEventListener("drop", function(e) {
+board.addEventListener("drop", function(e) {
   if (!draggedPiece) return;
 
   const target = e.target;
 
   if (target.classList.contains("square")) {
 
-    // Nếu thả vào chính ô cũ → không làm gì
-    if (target === draggedPiece) {
-      draggedPiece = null;
-      return;
+    if (target !== draggedPiece) {
+      target.textContent = draggedPiece.textContent;
+      draggedPiece.textContent = "";
     }
-
-    // Di chuyển quân
-    target.textContent = draggedPiece.textContent;
-    draggedPiece.textContent = "";
 
     draggedPiece = null;
   }
 });
+
+</script>
+
+</body>
+</html>
