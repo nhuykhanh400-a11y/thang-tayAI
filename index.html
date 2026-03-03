@@ -2,177 +2,208 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>AI người Tây</title>
+<title>AI Chat + Cờ vua</title>
+
+<!-- Chess libs -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chess.js@latest/dist/chess.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
 <style>
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:#0f172a;
   display:flex;
-  flex-direction:column;
   height:100vh;
+  background:#0f172a;
+  color:white;
 }
 
-h1{
-  color:white;
+/* Sidebar */
+#sidebar{
+  width:200px;
+  background:#111827;
   padding:20px;
-  margin:0;
+}
+
+.tab{
+  padding:10px;
+  margin-bottom:10px;
+  background:#1f2937;
+  cursor:pointer;
+  border-radius:8px;
+}
+
+.tab:hover{
+  background:#374151;
+}
+
+/* Main */
+#main{
+  flex:1;
+  padding:20px;
+}
+
+/* Chat */
+#chat-area{
+  display:block;
 }
 
 #chat-box{
-  flex:1;
-  padding:20px;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-}
-
-.message{
-  display:flex;
-  align-items:flex-end;
-  gap:10px;
-}
-
-.avatar{
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  flex-shrink:0;
-}
-
-.bubble{
-  padding:10px 15px;
-  border-radius:15px;
-  max-width:70%;
-  color:white;
-}
-
-.user .bubble{
-  background:#2563eb;
-  border-radius:15px 15px 0 15px;
-}
-
-.ai .bubble{
+  height:400px;
+  overflow:auto;
   background:#1e293b;
-  border-radius:15px 15px 15px 0;
-}
-
-.user{
-  align-self:flex-end;
-  flex-direction:row-reverse;
-}
-
-#input-area{
-  display:flex;
-  padding:15px;
-  background:#111827;
-}
-
-#message-input{
-  flex:1;
   padding:10px;
-  border-radius:10px;
-  border:none;
-  outline:none;
-  font-size:16px;
+  margin-bottom:10px;
 }
 
-#send-btn{
-  margin-left:10px;
-  padding:10px 20px;
-  border:none;
-  border-radius:10px;
-  background:#2563eb;
-  color:white;
+/* Chess */
+#chess-area{
+  display:none;
+}
+
+#board{
+  width:400px;
+  margin-top:10px;
+}
+
+input{
+  padding:8px;
+}
+
+button{
+  padding:8px 12px;
   cursor:pointer;
-  font-size:16px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>AI người Tày</h1>
+<!-- Sidebar -->
+<div id="sidebar">
+  <div class="tab" onclick="showChat()">Chat</div>
+  <div class="tab" onclick="showChess()">Cờ vua</div>
+</div>
 
-<div id="chat-box"></div>
+<!-- Main -->
+<div id="main">
 
-<div id="input-area">
-  <input type="text" id="message-input" placeholder="Nhập tin nhắn..." autocomplete="off">
-  <button id="send-btn">Gửi</button>
+  <!-- CHAT -->
+  <div id="chat-area">
+    <h2>AI Chat</h2>
+    <div id="chat-box"></div>
+    <input id="message-input" placeholder="Nhập tin nhắn..." style="width:80%">
+    <button onclick="sendMessage()">Gửi</button>
+  </div>
+
+  <!-- CHESS -->
+  <div id="chess-area">
+    <h2>Đấu với AI</h2>
+    <div id="board"></div>
+    <button onclick="newGame()">Ván mới</button>
+  </div>
+
 </div>
 
 <script>
-const chatBox = document.getElementById("chat-box");
-const input = document.getElementById("message-input");
-const sendBtn = document.getElementById("send-btn");
 
-function addMessage(role, text){
-  const messageDiv = document.createElement("div");
-  messageDiv.className = "message " + role;
+/* ================= TAB SWITCH ================= */
 
-  const avatar = document.createElement("img");
-  avatar.className = "avatar";
-
-  if(role === "ai"){
-    avatar.src = "https://cdn-icons-png.flaticon.com/512/4712/4712027.png";
-  }else{
-    avatar.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-  }
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerText = text;
-
-  messageDiv.appendChild(avatar);
-  messageDiv.appendChild(bubble);
-
-  chatBox.appendChild(messageDiv);
-  chatBox.scrollTop = chatBox.scrollHeight;
+function showChat(){
+  document.getElementById("chat-area").style.display="block";
+  document.getElementById("chess-area").style.display="none";
 }
+
+function showChess(){
+  document.getElementById("chat-area").style.display="none";
+  document.getElementById("chess-area").style.display="block";
+}
+
+/* ================= CHAT ================= */
 
 async function sendMessage(){
-  const message = input.value.trim();
-  if(!message) return;
+  const input=document.getElementById("message-input");
+  const msg=input.value.trim();
+  if(!msg) return;
 
-  addMessage("user", message);
-  input.value = "";
+  const box=document.getElementById("chat-box");
+  box.innerHTML += "<div>> "+msg+"</div>";
 
-  const loading = document.createElement("div");
-  loading.className = "message ai";
-  loading.innerHTML = `
-    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png">
-    <div class="bubble">AI đang suy nghĩ...</div>
-  `;
-  chatBox.appendChild(loading);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  const res=await fetch("/api/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:msg})
+  });
 
-  try{
-    const res = await fetch("/api/chat",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message})
-    });
-
-    const data = await res.json();
-    chatBox.removeChild(loading);
-
-    addMessage("ai", data.reply || "Có lỗi xảy ra.");
-
-  }catch(err){
-    chatBox.removeChild(loading);
-    addMessage("ai","Lỗi kết nối server.");
-  }
+  const data=await res.json();
+  box.innerHTML += "<div><b>AI:</b> "+(data.reply || "Lỗi")+"</div>";
+  input.value="";
+  box.scrollTop=box.scrollHeight;
 }
 
-sendBtn.addEventListener("click", sendMessage);
-
-input.addEventListener("keypress", function(e){
-  if(e.key === "Enter"){
+document.getElementById("message-input").addEventListener("keypress",function(e){
+  if(e.key==="Enter"){
     sendMessage();
   }
 });
+
+/* ================= CHESS ================= */
+
+let board;
+let game;
+let engine;
+let playerColor;
+
+function newGame(){
+  game = new Chess();
+  playerColor = Math.random() < 0.5 ? 'white' : 'black';
+
+  board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    orientation: playerColor,
+    onDrop: onDrop
+  });
+
+  engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish@latest/stockfish.js");
+
+  engine.onmessage = function(event){
+    if(event.data.startsWith("bestmove")){
+      const move = event.data.split(" ")[1];
+      game.move({
+        from: move.substring(0,2),
+        to: move.substring(2,4),
+        promotion:'q'
+      });
+      board.position(game.fen());
+    }
+  };
+
+  if(playerColor === 'black'){
+    makeAIMove();
+  }
+}
+
+function onDrop(source, target){
+  const move = game.move({
+    from: source,
+    to: target,
+    promotion:'q'
+  });
+
+  if(move === null) return 'snapback';
+
+  setTimeout(makeAIMove, 200);
+}
+
+function makeAIMove(){
+  engine.postMessage("position fen " + game.fen());
+  engine.postMessage("go depth 15"); // tăng lên 20 nếu muốn mạnh hơn
+}
+
+newGame();
+
 </script>
 
 </body>
