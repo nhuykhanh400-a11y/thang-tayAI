@@ -1,7 +1,7 @@
-const OpenAI = require("openai");
+const Groq = require("groq-sdk");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 module.exports = async function handler(req, res) {
@@ -14,20 +14,26 @@ module.exports = async function handler(req, res) {
     const { message } = req.body;
 
     if (!message) {
-      return res.status(400).json({ reply: "No input provided" });
+      return res.status(400).json({ reply: "No message provided" });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const chatCompletion = await groq.chat.completions.create({
       messages: [
-        { role: "system", content: "Bạn là một AI nói chuyện thân thiện." },
-        { role: "user", content: message }
+        {
+          role: "system",
+          content: "Bạn là một AI nói chuyện tự nhiên, thông minh, trả lời bằng tiếng Việt."
+        },
+        {
+          role: "user",
+          content: message
+        }
       ],
+      model: "openai/gpt-oss-120b",
     });
 
-    const reply = completion.choices[0].message.content;
-
-    return res.status(200).json({ reply });
+    return res.status(200).json({
+      reply: chatCompletion.choices[0].message.content
+    });
 
   } catch (error) {
     console.error(error);
