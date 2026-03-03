@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cờ Vua AI</title>
+<title>AI Cờ Vua</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js"></script>
 
 <style>
 body{
@@ -83,7 +82,6 @@ button{
 
 <script>
 let game = new Chess();
-let engine = STOCKFISH(); // KHÔNG dùng Worker nữa
 let selected = null;
 
 function drawBoard(){
@@ -118,7 +116,7 @@ function getUnicode(p){
 function clickSquare(r,c){
   let sq=String.fromCharCode(97+c)+(8-r);
   if(!selected){
-    selected=sq;
+    if(game.get(sq)) selected=sq;
   }else{
     let move=game.move({from:selected,to:sq,promotion:"q"});
     selected=null;
@@ -130,15 +128,11 @@ function clickSquare(r,c){
 }
 
 function aiMove(){
-  engine.postMessage("position fen "+game.fen());
-  engine.postMessage("go depth 10");
-  engine.onmessage=function(e){
-    if(e.data.startsWith("bestmove")){
-      let best=e.data.split(" ")[1];
-      game.move({from:best.substring(0,2),to:best.substring(2,4),promotion:"q"});
-      drawBoard();
-    }
-  }
+  let moves = game.moves();
+  if(moves.length === 0) return;
+  let randomMove = moves[Math.floor(Math.random()*moves.length)];
+  game.move(randomMove);
+  drawBoard();
 }
 
 function newGame(){
@@ -146,14 +140,41 @@ function newGame(){
   drawBoard();
 }
 
+/* CHAT AI TRẢ LỜI BÌNH THƯỜNG */
+
 function sendMsg(){
   let msg=document.getElementById("msg");
   let chat=document.getElementById("chat");
   if(!msg.value) return;
+
+  let userText = msg.value.toLowerCase();
   chat.innerHTML+="<div>👤 "+msg.value+"</div>";
-  chat.innerHTML+="<div>🤖 AI: Mình đang đánh cờ 😄</div>";
+
+  let reply = getAIReply(userText);
+  chat.innerHTML+="<div>🤖 "+reply+"</div>";
+
   chat.scrollTop=chat.scrollHeight;
   msg.value="";
+}
+
+function getAIReply(text){
+
+  if(text.includes("khai cuoc"))
+    return "Bạn có thể thử khai cuộc Ý: e4 e5 Nf3 Nc6 Bc4.";
+
+  if(text.includes("trung cuoc"))
+    return "Trung cuộc nên kiểm soát trung tâm và phát triển quân.";
+
+  if(text.includes("hau cuoc"))
+    return "Hậu cuộc nên kích hoạt vua và đẩy tốt thông minh.";
+
+  if(text.includes("mat hau"))
+    return "Mất hậu thường rất bất lợi, cố đổi quân để cân bằng.";
+
+  if(text.includes("thang"))
+    return "Muốn thắng hãy kiểm soát trung tâm và không treo quân.";
+
+  return "Cờ vua là trò chơi chiến thuật rất sâu. Bạn muốn hỏi về khai cuộc hay chiến thuật?";
 }
 
 drawBoard();
