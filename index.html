@@ -209,6 +209,16 @@ function addMessage(text, type) {
   chat.appendChild(wrapper);
   chat.scrollTop = chat.scrollHeight;
 }
+  document.addEventListener("DOMContentLoaded", function () {
+
+  const uploadBtn = document.getElementById("uploadBtn");
+  const imageInput = document.getElementById("imageInput");
+
+  uploadBtn.addEventListener("click", function () {
+    imageInput.click();
+  });
+
+});
 </script>
 
 </body>
