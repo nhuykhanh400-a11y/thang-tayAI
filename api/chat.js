@@ -1,4 +1,5 @@
 console.log("OpenAI key:", process.env.OPENAI_API_KEY);
+
 const Groq = require("groq-sdk");
 const fetch = require("node-fetch");
 
@@ -6,69 +7,64 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-process.env.OPENAI_API_KEY
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ reply: "Method not allowed" });
   }
 
   try {
-    const body = typeof req.body === "string" 
-  ? JSON.parse(req.body) 
-  : req.body;
+    const body = typeof req.body === "string"
+      ? JSON.parse(req.body)
+      : req.body;
 
-const message = body?.message;
-const imageBase64 = body?.imageBase64;
+    const message = body?.message;
+    const imageBase64 = body?.imageBase64;
 
-    // Nếu có ảnh
-if (imageBase64) {
+    // ===== Nếu có ảnh =====
+    if (imageBase64) {
 
-  const openaiResponse = await fetch(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: message || "Mô tả bức ảnh này" },
+      const openaiResponse = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
               {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
+                role: "user",
+                content: [
+                  { type: "text", text: message || "Mô tả bức ảnh này" },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:image/jpeg;base64,${imageBase64}`
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      })
-    }
-  );
+          })
+        }
+      );
 
-  const openaiData = await openaiResponse.json();
+      const openaiData = await openaiResponse.json();
 
-  if (!openaiResponse.ok) {
-    console.error(openaiData);
-    return res.status(400).json({
-      reply: "OpenAI Vision lỗi",
-      error: openaiData
-    });
-  }
+      if (!openaiResponse.ok) {
+        console.error(openaiData);
+        return res.status(400).json({
+          reply: "OpenAI Vision lỗi",
+          error: openaiData
+        });
+      }
 
-  const description = openaiData.choices[0].message.content;
+      const description = openaiData.choices?.[0]?.message?.content;
 
-  return res.json({ reply: description });
-}
-
-      // Nếu có cả ảnh + text yêu cầu
+      // Nếu có cả ảnh + text
       if (message) {
-        // gửi mô tả ảnh kèm yêu cầu tới Groq để trả lời
         const combined = `Ảnh: ${description}\nYêu cầu: ${message}`;
 
         const chatResult = await groq.chat.completions.create({
@@ -85,13 +81,13 @@ if (imageBase64) {
         });
       }
 
-      // Chỉ có ảnh, không có text
+      // Chỉ có ảnh
       return res.status(200).json({
         reply: description
       });
     }
 
-    // ❗ Nếu chỉ text → dùng Groq như cũ
+    // ===== Nếu chỉ text =====
     if (!message) {
       return res.status(400).json({ reply: "No input provided" });
     }
@@ -110,7 +106,7 @@ if (imageBase64) {
     });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ reply: "Server error" });
+    console.error("Server error:", error);
+    return res.status(500).json({ reply: "Server error", error: error.message });
   }
 };
