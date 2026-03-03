@@ -30,15 +30,15 @@ body {
   justify-content: center;
   align-items: center;
   font-size: 40px;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
 }
 
 .light { background: #f0d9b5; }
 .dark { background: #b58863; }
 
-.square:active {
-  cursor: grabbing;
+.selected {
+  outline: 3px solid yellow;
 }
 </style>
 </head>
@@ -66,12 +66,13 @@ let position = [
   "RNBQKBNR"
 ];
 
-let draggedSquare = null;
+let selected = null;
 
 function createBoard() {
   board.innerHTML = "";
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
+
       const square = document.createElement("div");
       square.classList.add("square");
       square.classList.add((row + col) % 2 === 0 ? "light" : "dark");
@@ -79,11 +80,12 @@ function createBoard() {
       const piece = position[row][col];
       if (piece !== ".") {
         square.textContent = pieces[piece];
-        square.draggable = true;
       }
 
       square.dataset.row = row;
       square.dataset.col = col;
+
+      square.addEventListener("click", onSquareClick);
 
       board.appendChild(square);
     }
@@ -92,41 +94,33 @@ function createBoard() {
 
 createBoard();
 
-// ====== DRAG ======
-board.addEventListener("dragstart", e => {
-  if (e.target.classList.contains("square") && e.target.textContent !== "") {
-    draggedSquare = e.target;
+function onSquareClick(e) {
+  const square = e.target;
+  const row = +square.dataset.row;
+  const col = +square.dataset.col;
 
-    const img = new Image();
-    img.src =
-      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjwvc3ZnPg==";
-    e.dataTransfer.setDragImage(img, 0, 0);
-  }
-});
+  const piece = position[row][col];
 
-board.addEventListener("dragover", e => e.preventDefault());
-
-board.addEventListener("drop", e => {
-  if (!draggedSquare) return;
-
-  const target = e.target;
-  if (!target.classList.contains("square")) return;
-
-  const fromRow = +draggedSquare.dataset.row;
-  const fromCol = +draggedSquare.dataset.col;
-  const toRow = +target.dataset.row;
-  const toCol = +target.dataset.col;
-
-  const piece = position[fromRow][fromCol];
-
-  if (isValidMove(piece, fromRow, fromCol, toRow, toCol)) {
-    movePiece(fromRow, fromCol, toRow, toCol);
+  // Nếu chưa chọn quân
+  if (!selected) {
+    if (piece !== ".") {
+      selected = { row, col };
+      square.classList.add("selected");
+    }
+    return;
   }
 
-  draggedSquare = null;
-});
+  const fromRow = selected.row;
+  const fromCol = selected.col;
+  const movingPiece = position[fromRow][fromCol];
 
-// ===== MOVE LOGIC =====
+  if (isValidMove(movingPiece, fromRow, fromCol, row, col)) {
+    movePiece(fromRow, fromCol, row, col);
+  }
+
+  selected = null;
+  createBoard();
+}
 
 function movePiece(fr, fc, tr, tc) {
   position[tr] =
@@ -138,16 +132,11 @@ function movePiece(fr, fc, tr, tc) {
     position[fr].substring(0, fc) +
     "." +
     position[fr].substring(fc + 1);
-
-  createBoard();
 }
-
-// ===== RULES =====
 
 function isValidMove(piece, fr, fc, tr, tc) {
   const dr = tr - fr;
   const dc = tc - fc;
-
   const targetPiece = position[tr][tc];
 
   const isWhite = piece === piece.toUpperCase();
@@ -157,32 +146,32 @@ function isValidMove(piece, fr, fc, tr, tc) {
 
   switch (piece.toLowerCase()) {
 
-    case "p": // Pawn
+    case "p":
       const dir = isWhite ? -1 : 1;
       if (dc === 0 && dr === dir && targetPiece === ".") return true;
       if (Math.abs(dc) === 1 && dr === dir && targetPiece !== ".") return true;
       return false;
 
-    case "r": // Rook
+    case "r":
       if (dr === 0 || dc === 0) return true;
       return false;
 
-    case "n": // Knight
+    case "n":
       if (
         (Math.abs(dr) === 2 && Math.abs(dc) === 1) ||
         (Math.abs(dr) === 1 && Math.abs(dc) === 2)
       ) return true;
       return false;
 
-    case "b": // Bishop
+    case "b":
       if (Math.abs(dr) === Math.abs(dc)) return true;
       return false;
 
-    case "q": // Queen
+    case "q":
       if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) return true;
       return false;
 
-    case "k": // King
+    case "k":
       if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) return true;
       return false;
   }
