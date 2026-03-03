@@ -23,43 +23,31 @@ module.exports = async function handler(req, res) {
     // ===== Nếu có ảnh =====
     if (imageBase64) {
 
-      const openaiResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: message || "Mô tả bức ảnh này" },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/jpeg;base64,${imageBase64}`
-                    }
-                  }
-                ]
-              }
-            ]
-          })
-        }
-      );
-
-      const openaiData = await openaiResponse.json();
-
-      if (!openaiResponse.ok) {
-        console.error(openaiData);
-        return res.status(400).json({
-          reply: "OpenAI Vision lỗi",
-          error: openaiData
-        });
+  const visionResult = await groq.chat.completions.create({
+    model: "llava-v1.5-7b-4096-preview",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: message || "Mô tả bức ảnh này" },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${imageBase64}`
+            }
+          }
+        ]
       }
+    ],
+    temperature: 0.7
+  });
+
+  const description = visionResult.choices[0].message.content;
+
+  return res.status(200).json({
+    reply: description
+  });
+}
 
       const description = openaiData.choices?.[0]?.message?.content;
 
