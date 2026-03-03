@@ -31,8 +31,9 @@ body{
 .light{ background:#f0d9b5; }
 .dark{ background:#b58863; }
 
-.highlight{ background:yellow !important; }
-.capture{ background:red !important; }
+/* ===== MÀU MỚI DỊU HƠN ===== */
+.highlight{ background:#ffe082 !important; }
+.capture{ background:#ff6b6b !important; }
 
 .selected{ outline:3px solid cyan; }
 
@@ -68,6 +69,8 @@ let gameState = [
 let selected = null;
 let currentTurn = "white";
 
+/* ================= DRAW ================= */
+
 function drawBoard(){
   board.innerHTML="";
   for(let r=0;r<8;r++){
@@ -87,22 +90,21 @@ function drawBoard(){
       }
 
       square.addEventListener("click",()=>handleClick(r,c));
-
       board.appendChild(square);
     }
   }
 }
 
+/* ================= CLICK MOVE ================= */
+
 function handleClick(r,c){
 
   const piece = gameState[r][c];
 
-  // Nếu chưa chọn quân
   if(!selected){
     if(!piece) return;
-
-    if(currentTurn=="white" && piece==piece.toLowerCase()) return;
-    if(currentTurn=="black" && piece==piece.toUpperCase()) return;
+    if(currentTurn==="white" && piece===piece.toLowerCase()) return;
+    if(currentTurn==="black" && piece===piece.toUpperCase()) return;
 
     selected = {row:r,col:c};
     highlightMoves(r,c);
@@ -110,20 +112,64 @@ function handleClick(r,c){
     return;
   }
 
-  // Nếu đã chọn rồi
-
   const moves = getLegalMoves(selected.row,selected.col);
 
   if(moves.some(m=>m.r==r && m.c==c)){
-    gameState[r][c] = gameState[selected.row][selected.col];
-    gameState[selected.row][selected.col] = "";
-    currentTurn = currentTurn=="white"?"black":"white";
+    movePiece(selected.row,selected.col,r,c);
+    currentTurn = currentTurn==="white"?"black":"white";
   }
 
-  selected = null;
+  selected=null;
   clearHighlight();
   drawBoard();
 }
+
+function movePiece(sr,sc,tr,tc){
+
+  const piece = gameState[sr][sc];
+
+  // En Passant capture
+  if(piece.toLowerCase()==="p" && enPassantTarget
+    && tr===enPassantTarget.r && tc===enPassantTarget.c){
+      gameState[sr][tc]="";
+  }
+
+  // Castling
+  if(piece.toLowerCase()==="k" && Math.abs(tc-sc)===2){
+    if(tc===6){ // king side
+      gameState[tr][5]=gameState[tr][7];
+      gameState[tr][7]="";
+    }
+    if(tc===2){ // queen side
+      gameState[tr][3]=gameState[tr][0];
+      gameState[tr][0]="";
+    }
+  }
+
+  // Move
+  gameState[tr][tc]=piece;
+  gameState[sr][sc]="";
+
+  // Promotion
+  if(piece==="P" && tr===0) gameState[tr][tc]="Q";
+  if(piece==="p" && tr===7) gameState[tr][tc]="q";
+
+  // Update castling flags
+  if(piece==="K") whiteKingMoved=true;
+  if(piece==="k") blackKingMoved=true;
+  if(piece==="R" && sr===7 && sc===0) whiteRookLeftMoved=true;
+  if(piece==="R" && sr===7 && sc===7) whiteRookRightMoved=true;
+  if(piece==="r" && sr===0 && sc===0) blackRookLeftMoved=true;
+  if(piece==="r" && sr===0 && sc===7) blackRookRightMoved=true;
+
+  // En passant target
+  enPassantTarget=null;
+  if(piece.toLowerCase()==="p" && Math.abs(tr-sr)===2){
+    enPassantTarget={r:(tr+sr)/2,c:tc};
+  }
+}
+
+/* ================= HIGHLIGHT ================= */
 
 function highlightSelected(r,c){
   const sq=document.querySelector(`[data-row='${r}'][data-col='${c}']`);
@@ -148,24 +194,34 @@ function highlightMoves(r,c){
   });
 }
 
-function getLegalMoves(r,c){
-  const piece=gameState[r][c];
+/* ================= FULL RULE ENGINE ================= */
+
+let whiteKingMoved=false;
+let blackKingMoved=false;
+let whiteRookLeftMoved=false;
+let whiteRookRightMoved=false;
+let blackRookLeftMoved=false;
+let blackRookRightMoved=false;
+let enPassantTarget=null;
+
+function cloneBoard(b){ return JSON.parse(JSON.stringify(b)); }
+
+function inside(x,y){ return x>=0&&x<8&&y>=0&&y<8; }
+
+function getPseudoMoves(board,r,c){
+  const piece=board[r][c];
   if(!piece) return [];
-
   const moves=[];
-  const isWhite=piece==piece.toUpperCase();
+  const isWhite=piece===piece.toUpperCase();
   const dir=isWhite?-1:1;
-
-  function inside(x,y){ return x>=0&&x<8&&y>=0&&y<8; }
 
   function slide(dirs){
     dirs.forEach(d=>{
       let x=r+d[0], y=c+d[1];
       while(inside(x,y)){
-        if(!gameState[x][y]){
-          moves.push({r:x,c:y});
-        }else{
-          if((gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
+        if(!board[x][y]) moves.push({r:x,c:y});
+        else{
+          if((board[x][y]===board[x][y].toUpperCase())!==isWhite)
             moves.push({r:x,c:y});
           break;
         }
@@ -175,58 +231,99 @@ function getLegalMoves(r,c){
   }
 
   switch(piece.toLowerCase()){
-
     case "p":
-      if(inside(r+dir,c) && !gameState[r+dir][c])
+      if(inside(r+dir,c)&&!board[r+dir][c])
         moves.push({r:r+dir,c:c});
-      if((isWhite&&r==6)||(!isWhite&&r==1)){
-        if(!gameState[r+dir][c]&&!gameState[r+2*dir][c])
+      if((isWhite&&r===6)||(!isWhite&&r===1)){
+        if(!board[r+dir][c]&&!board[r+2*dir][c])
           moves.push({r:r+2*dir,c:c});
       }
       [-1,1].forEach(dc=>{
-        if(inside(r+dir,c+dc)&&gameState[r+dir][c+dc]){
-          if((gameState[r+dir][c+dc].toUpperCase()==gameState[r+dir][c+dc])!=isWhite)
-            moves.push({r:r+dir,c:c+dc});
+        let x=r+dir,y=c+dc;
+        if(inside(x,y)){
+          if(board[x][y] &&
+            (board[x][y]===board[x][y].toUpperCase())!==isWhite)
+            moves.push({r:x,c:y});
+          if(enPassantTarget && enPassantTarget.r===x && enPassantTarget.c===y)
+            moves.push({r:x,c:y});
         }
       });
       break;
 
-    case "r":
-      slide([[1,0],[-1,0],[0,1],[0,-1]]);
-      break;
-
-    case "b":
-      slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
-      break;
-
-    case "q":
-      slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
-      break;
+    case "r": slide([[1,0],[-1,0],[0,1],[0,-1]]); break;
+    case "b": slide([[1,1],[1,-1],[-1,1],[-1,-1]]); break;
+    case "q": slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]); break;
 
     case "n":
-      [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]].forEach(d=>{
-        const x=r+d[0], y=c+d[1];
-        if(inside(x,y)){
-          if(!gameState[x][y] ||
-          (gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
-            moves.push({r:x,c:y});
-        }
+      [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]
+      .forEach(d=>{
+        let x=r+d[0],y=c+d[1];
+        if(inside(x,y) &&
+          (!board[x][y] ||
+          (board[x][y]===board[x][y].toUpperCase())!==isWhite))
+          moves.push({r:x,c:y});
       });
       break;
 
     case "k":
-      [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d=>{
-        const x=r+d[0], y=c+d[1];
-        if(inside(x,y)){
-          if(!gameState[x][y] ||
-          (gameState[x][y].toUpperCase()==gameState[x][y])!=isWhite)
-            moves.push({r:x,c:y});
-        }
+      [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]
+      .forEach(d=>{
+        let x=r+d[0],y=c+d[1];
+        if(inside(x,y) &&
+          (!board[x][y] ||
+          (board[x][y]===board[x][y].toUpperCase())!==isWhite))
+          moves.push({r:x,c:y});
       });
       break;
   }
 
   return moves;
+}
+
+function isSquareAttacked(board,row,col,byWhite){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      let p=board[r][c];
+      if(!p) continue;
+      if((p===p.toUpperCase())!==byWhite) continue;
+      if(getPseudoMoves(board,r,c).some(m=>m.r===row&&m.c===col))
+        return true;
+    }
+  }
+  return false;
+}
+
+function isKingInCheck(board,isWhite){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      let p=board[r][c];
+      if(p && p.toLowerCase()==="k" &&
+        (p===p.toUpperCase())===isWhite)
+        return isSquareAttacked(board,r,c,!isWhite);
+    }
+  }
+  return false;
+}
+
+function getLegalMoves(r,c){
+  const piece=gameState[r][c];
+  if(!piece) return [];
+  const isWhite=piece===piece.toUpperCase();
+  if(currentTurn==="white" && !isWhite) return [];
+  if(currentTurn==="black" && isWhite) return [];
+
+  const pseudo=getPseudoMoves(gameState,r,c);
+  const legal=[];
+
+  pseudo.forEach(m=>{
+    const test=cloneBoard(gameState);
+    test[m.r][m.c]=test[r][c];
+    test[r][c]="";
+    if(!isKingInCheck(test,isWhite))
+      legal.push(m);
+  });
+
+  return legal;
 }
 
 drawBoard();
