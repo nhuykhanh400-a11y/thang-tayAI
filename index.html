@@ -79,6 +79,7 @@ let playerColor="white";
 let currentTurn="white";
 let selected=null;
 let gameState;
+  let engineReady = false;
 
 function resetBoard(){
 gameState=[
@@ -265,11 +266,19 @@ return true;
 }
 
 function convertToFEN(){
+
+if(!gameState) return "";
+
 let fen="";
+
 for(let r=0;r<8;r++){
 let empty=0;
 for(let c=0;c<8;c++){
+
+if(!gameState[r]) continue;
+
 const piece=gameState[r][c];
+
 if(piece===""){
 empty++;
 }else{
@@ -277,9 +286,11 @@ if(empty>0){fen+=empty; empty=0;}
 fen+=piece;
 }
 }
+
 if(empty>0) fen+=empty;
 if(r<7) fen+="/";
 }
+
 fen += (currentTurn==="white"?" w ":" b ") + "- - 0 1";
 return fen;
 }
@@ -343,6 +354,52 @@ function makeAIMove(){
 
     engine.postMessage("position fen " + fen);
     engine.postMessage("go depth 12");
+}
+/* ================= AI FIX ================= */
+
+const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
+
+engine.onmessage = function(event){
+
+    const line = event.data;
+
+    if(line === "uciok"){
+        engineReady = true;
+        console.log("Engine ready");
+    }
+
+    if(line.startsWith("bestmove")){
+
+        const move = line.split(" ")[1];
+        if(move === "(none)") return;
+
+        const from = move.substring(0,2);
+        const to   = move.substring(2,4);
+
+        const sr = 8 - parseInt(from[1]);
+        const sc = from.charCodeAt(0) - 97;
+
+        const tr = 8 - parseInt(to[1]);
+        const tc = to.charCodeAt(0) - 97;
+
+        movePiece(sr,sc,tr,tc);
+
+        currentTurn = currentTurn==="white"?"black":"white";
+        drawBoard();
+    }
+};
+
+engine.postMessage("uci");
+
+function makeAIMove(){
+
+    if(!engineReady) return;
+
+    const fen = convertToFEN();
+    if(!fen) return;
+
+    engine.postMessage("position fen " + fen);
+    engine.postMessage("go depth 10");
 }
 </script>
 </body>
