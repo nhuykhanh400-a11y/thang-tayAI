@@ -5,44 +5,91 @@ const groq = new Groq({
 });
 
 module.exports = async function handler(req, res) {
-
   if (req.method !== "POST") {
     return res.status(405).json({ reply: "Method not allowed" });
   }
 
   try {
-    const { message } = req.body;
+    const { message, imageBase64 } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ reply: "No message provided" });
+    // 👇 Nếu có ảnh → gọi Gemini Vision
+    if (imageBase64) {
+
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: "Phân tích bức ảnh này:" },
+                  {
+                    inline_data: {
+                      mime_type: "image/jpeg",
+                      data: imageBase64
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+        }
+      );
+
+      const geminiData = await geminiResponse.json();
+      const description = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!description) {
+        return res.status(500).json({ reply: "Không phân tích được ảnh 🙁" });
+      }
+
+      // Nếu có cả ảnh + text yêu cầu
+      if (message) {
+        // gửi mô tả ảnh kèm yêu cầu tới Groq để trả lời
+        const combined = `Ảnh: ${description}\nYêu cầu: ${message}`;
+
+        const chatResult = await groq.chat.completions.create({
+          messages: [
+            { role: "system", content: "Bạn là AI phân tích ảnh + chat" },
+            { role: "user", content: combined }
+          ],
+          model: "openai/gpt-oss-120b",
+          temperature: 0.7,
+        });
+
+        return res.status(200).json({
+          reply: chatResult.choices[0].message.content
+        });
+      }
+
+      // Chỉ có ảnh, không có text
+      return res.status(200).json({
+        reply: description
+      });
     }
 
-    const chatCompletion = await groq.chat.completions.create({
+    // ❗ Nếu chỉ text → dùng Groq như cũ
+    if (!message) {
+      return res.status(400).json({ reply: "No input provided" });
+    }
+
+    const textOnly = await groq.chat.completions.create({
       messages: [
-        {
-  role: "system",
-  content: `
-Bạn là một AI cực kỳ thông minh, tư duy logic tốt,
-trả lời rõ ràng, có cấu trúc, phân tích trước khi kết luận.
-Luôn giải thích ngắn gọn nhưng đủ ý.
-Nếu câu hỏi khó, hãy suy luận từng bước.
-Trả lời bằng tiếng Việt tự nhiên.
-`
-},
-        {
-          role: "user",
-          content: message
-        }
+        { role: "system", content: "Bạn là AI chat thông minh" },
+        { role: "user", content: message }
       ],
       model: "openai/gpt-oss-120b",
+      temperature: 0.7,
     });
 
     return res.status(200).json({
-      reply: chatCompletion.choices[0].message.content
+      reply: textOnly.choices[0].message.content
     });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ reply: "AI đang lỗi 😢" });
+    return res.status(500).json({ reply: "Server error" });
   }
 };
