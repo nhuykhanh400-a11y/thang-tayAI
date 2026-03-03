@@ -2,152 +2,92 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Giao Diện Cờ Vua</title>
-
-<!-- Chessboard UI -->
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard.min.css"/>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard.min.js"></script>
+<title>Chess AI</title>
 
 <style>
-body{
-  margin:0;
-  background:#111;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
+body {
+  background: #1e1e1e;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: Arial;
 }
 
-.container{
-  display:flex;
-  margin-top:30px;
+#board {
+  width: 480px;
+  height: 480px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border: 4px solid #333;
 }
 
-#board{
-  width:500px;
+.square {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  cursor: grab;
 }
 
-.right{
-  width:320px;
-  margin-left:30px;
-  display:flex;
-  flex-direction:column;
-}
+.light { background: #f0d9b5; }
+.dark { background: #b58863; }
 
-#chat{
-  flex:1;
-  background:#1e1e1e;
-  padding:10px;
-  overflow-y:auto;
-  border-radius:8px;
-}
-
-.chat-input{
-  margin-top:10px;
-  display:flex;
-}
-
-.chat-input input{
-  flex:1;
-  padding:8px;
-  border:none;
-  border-radius:6px 0 0 6px;
-}
-
-.chat-input button{
-  padding:8px 12px;
-  border:none;
-  background:#444;
-  color:white;
-  border-radius:0 6px 6px 0;
-  cursor:pointer;
-}
-
-button.new{
-  margin-bottom:10px;
-  padding:8px 12px;
-  background:#444;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+.square:active {
+  cursor: grabbing;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<div>
-<h2>♟ AI Cờ Vua</h2>
-<button class="new" onclick="resetGame()">Ván mới</button>
 <div id="board"></div>
-</div>
-
-<div class="right">
-<h3>💬 Chat AI</h3>
-<div id="chat"></div>
-
-<div class="chat-input">
-<input id="msg" placeholder="Nhắn AI...">
-<button onclick="sendMsg()">Gửi</button>
-</div>
-</div>
-
-</div>
 
 <script>
-var board = null
-var game = new Chess()
+const board = document.getElementById("board");
 
-function onDragStart (source, piece) {
-  // Không cho kéo quân đen
-  if (piece.search(/^b/) !== -1) return false
+const pieces = {
+  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
+  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
+};
+
+const startPosition = [
+  "rnbqkbnr",
+  "pppppppp",
+  "........",
+  "........",
+  "........",
+  "........",
+  "PPPPPPPP",
+  "RNBQKBNR"
+];
+
+function createBoard() {
+  board.innerHTML = "";
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.createElement("div");
+      square.classList.add("square");
+      square.classList.add((row + col) % 2 === 0 ? "light" : "dark");
+
+      const piece = startPosition[row][col];
+      if (piece !== ".") {
+        square.textContent = pieces[piece];
+        square.draggable = true;
+      }
+
+      square.dataset.row = row;
+      square.dataset.col = col;
+
+      board.appendChild(square);
+    }
+  }
 }
 
-function onDrop (source, target) {
-  var move = game.move({
-    from: source,
-    to: target,
-    promotion: 'q'
-  })
-
-  if (move === null) return 'snapback'
-}
-
-function onSnapEnd () {
-  board.position(game.fen())
-}
-
-board = Chessboard('board', {
-  draggable: true,
-  position: 'start',
-  onDragStart: onDragStart,
-  onDrop: onDrop,
-  onSnapEnd: onSnapEnd
-})
-
-function resetGame(){
-  game.reset()
-  board.start()
-}
-
-/* Chat UI đơn giản */
-function sendMsg(){
-  let input=document.getElementById("msg")
-  let chat=document.getElementById("chat")
-  if(!input.value) return
-  chat.innerHTML += "<div>👤 "+input.value+"</div>"
-  chat.innerHTML += "<div>🤖 Đã nhận tin nhắn.</div>"
-  chat.scrollTop=chat.scrollHeight
-  input.value=""
-}
+createBoard();
 </script>
 
 </body>
