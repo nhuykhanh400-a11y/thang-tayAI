@@ -55,7 +55,7 @@ const pieces = {
   R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
 };
 
-const startPosition = [
+let position = [
   "rnbqkbnr",
   "pppppppp",
   "........",
@@ -66,7 +66,7 @@ const startPosition = [
   "RNBQKBNR"
 ];
 
-let draggedPiece = null;
+let draggedSquare = null;
 
 function createBoard() {
   board.innerHTML = "";
@@ -76,7 +76,7 @@ function createBoard() {
       square.classList.add("square");
       square.classList.add((row + col) % 2 === 0 ? "light" : "dark");
 
-      const piece = startPosition[row][col];
+      const piece = position[row][col];
       if (piece !== ".") {
         square.textContent = pieces[piece];
         square.draggable = true;
@@ -92,14 +92,11 @@ function createBoard() {
 
 createBoard();
 
-
-// ===== DRAG & DROP FIX HOÀN CHỈNH =====
-
-board.addEventListener("dragstart", function(e) {
+// ====== DRAG ======
+board.addEventListener("dragstart", e => {
   if (e.target.classList.contains("square") && e.target.textContent !== "") {
-    draggedPiece = e.target;
+    draggedSquare = e.target;
 
-    // Ẩn bóng mờ mặc định
     const img = new Image();
     img.src =
       "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjwvc3ZnPg==";
@@ -107,25 +104,91 @@ board.addEventListener("dragstart", function(e) {
   }
 });
 
-board.addEventListener("dragover", function(e) {
-  e.preventDefault();
-});
+board.addEventListener("dragover", e => e.preventDefault());
 
-board.addEventListener("drop", function(e) {
-  if (!draggedPiece) return;
+board.addEventListener("drop", e => {
+  if (!draggedSquare) return;
 
   const target = e.target;
+  if (!target.classList.contains("square")) return;
 
-  if (target.classList.contains("square")) {
+  const fromRow = +draggedSquare.dataset.row;
+  const fromCol = +draggedSquare.dataset.col;
+  const toRow = +target.dataset.row;
+  const toCol = +target.dataset.col;
 
-    if (target !== draggedPiece) {
-      target.textContent = draggedPiece.textContent;
-      draggedPiece.textContent = "";
-    }
+  const piece = position[fromRow][fromCol];
 
-    draggedPiece = null;
+  if (isValidMove(piece, fromRow, fromCol, toRow, toCol)) {
+    movePiece(fromRow, fromCol, toRow, toCol);
   }
+
+  draggedSquare = null;
 });
+
+// ===== MOVE LOGIC =====
+
+function movePiece(fr, fc, tr, tc) {
+  position[tr] =
+    position[tr].substring(0, tc) +
+    position[fr][fc] +
+    position[tr].substring(tc + 1);
+
+  position[fr] =
+    position[fr].substring(0, fc) +
+    "." +
+    position[fr].substring(fc + 1);
+
+  createBoard();
+}
+
+// ===== RULES =====
+
+function isValidMove(piece, fr, fc, tr, tc) {
+  const dr = tr - fr;
+  const dc = tc - fc;
+
+  const targetPiece = position[tr][tc];
+
+  const isWhite = piece === piece.toUpperCase();
+  const isTargetWhite = targetPiece === targetPiece.toUpperCase();
+
+  if (targetPiece !== "." && isWhite === isTargetWhite) return false;
+
+  switch (piece.toLowerCase()) {
+
+    case "p": // Pawn
+      const dir = isWhite ? -1 : 1;
+      if (dc === 0 && dr === dir && targetPiece === ".") return true;
+      if (Math.abs(dc) === 1 && dr === dir && targetPiece !== ".") return true;
+      return false;
+
+    case "r": // Rook
+      if (dr === 0 || dc === 0) return true;
+      return false;
+
+    case "n": // Knight
+      if (
+        (Math.abs(dr) === 2 && Math.abs(dc) === 1) ||
+        (Math.abs(dr) === 1 && Math.abs(dc) === 2)
+      ) return true;
+      return false;
+
+    case "b": // Bishop
+      if (Math.abs(dr) === Math.abs(dc)) return true;
+      return false;
+
+    case "q": // Queen
+      if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) return true;
+      return false;
+
+    case "k": // King
+      if (Math.abs(dr) <= 1 && Math.abs(dc) <= 1) return true;
+      return false;
+  }
+
+  return false;
+}
 
 </script>
 
