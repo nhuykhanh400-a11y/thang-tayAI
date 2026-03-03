@@ -95,13 +95,13 @@ function createBoard() {
 createBoard();
 
 function onSquareClick(e) {
-  const square = e.target;
+  const square = e.currentTarget; // FIX QUAN TRỌNG
+
   const row = +square.dataset.row;
   const col = +square.dataset.col;
 
   const piece = position[row][col];
 
-  // Nếu chưa chọn quân
   if (!selected) {
     if (piece !== ".") {
       selected = { row, col };
@@ -178,7 +178,6 @@ function isValidMove(piece, fr, fc, tr, tc) {
 
   return false;
 }
-
 </script>
 
 </body>
