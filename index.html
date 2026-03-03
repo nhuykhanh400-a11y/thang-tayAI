@@ -304,7 +304,6 @@ engine.postMessage("go depth 12");
 startGame("white");
 /* ================= AI STOCKFISH FIX ================= */
 
-let engineReady = false;
 
 const engine = new Worker("https://cdn.jsdelivr.net/npm/stockfish/stockfish.js");
 
@@ -401,6 +400,25 @@ function makeAIMove(){
     engine.postMessage("position fen " + fen);
     engine.postMessage("go depth 10");
 }
+</script>
+<script>
+
+let board = null;
+let game = new Chess();
+let engineReady = true;
+let playerColor = "white";
+
+function startGame(color) {
+    playerColor = color;
+
+    if (color === "black") {
+        board.orientation("black");
+        setTimeout(makeAIMove, 500);
+    } else {
+        board.orientation("white");
+    }
+}
+
 </script>
 </body>
 </html>
