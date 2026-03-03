@@ -149,7 +149,34 @@ function movePiece(sr,sc,tr,tc){
 
 /* ===== CHECK LOGIC (ĐẶT ĐÚNG VỊ TRÍ NGOÀI HANDLECLICK) ===== */
 
-function findKing(board,isWhite){
+function convertToFEN(){
+    let fen = "";
+
+    for(let r=0; r<8; r++){
+        let empty = 0;
+
+        for(let c=0; c<8; c++){
+            const piece = gameState[r][c];
+
+            if(piece === ""){
+                empty++;
+            } else {
+                if(empty > 0){
+                    fen += empty;
+                    empty = 0;
+                }
+                fen += piece;
+            }
+        }
+
+        if(empty > 0) fen += empty;
+        if(r < 7) fen += "/";
+    }
+
+    fen += " w - - 0 1"; // tạm cho trắng đi
+    return fen;
+}
+  function findKing(board,isWhite){
   const king = isWhite ? "K" : "k";
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
@@ -344,6 +371,7 @@ engine.onmessage = function(event) {
 
         movePiece(sr, sc, tr, tc);
         renderBoard();
+      makeAIMove();
     }
 };
 
