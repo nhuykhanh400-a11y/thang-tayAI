@@ -3,8 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Cờ Vua Mạnh</title>
+<title>Giao Diện Cờ Vua</title>
+
+<!-- Chessboard UI -->
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard.min.css"/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard.min.js"></script>
 
 <style>
 body{
@@ -15,43 +22,80 @@ body{
   display:flex;
   justify-content:center;
 }
-.container{ display:flex; margin-top:20px; }
-#board{
-  width:480px;
-  height:480px;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  border:4px solid #555;
-}
-.square{
-  width:60px;height:60px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:38px;cursor:pointer;
-}
-.light{ background:#f0d9b5;color:black; }
-.dark{ background:#b58863;color:black; }
 
-.right{ width:300px;margin-left:20px;display:flex;flex-direction:column;}
-#chat{ flex:1;background:#222;padding:10px;overflow-y:auto;}
-input{ padding:8px;}
-button{ padding:8px;}
+.container{
+  display:flex;
+  margin-top:30px;
+}
+
+#board{
+  width:500px;
+}
+
+.right{
+  width:320px;
+  margin-left:30px;
+  display:flex;
+  flex-direction:column;
+}
+
+#chat{
+  flex:1;
+  background:#1e1e1e;
+  padding:10px;
+  overflow-y:auto;
+  border-radius:8px;
+}
+
+.chat-input{
+  margin-top:10px;
+  display:flex;
+}
+
+.chat-input input{
+  flex:1;
+  padding:8px;
+  border:none;
+  border-radius:6px 0 0 6px;
+}
+
+.chat-input button{
+  padding:8px 12px;
+  border:none;
+  background:#444;
+  color:white;
+  border-radius:0 6px 6px 0;
+  cursor:pointer;
+}
+
+button.new{
+  margin-bottom:10px;
+  padding:8px 12px;
+  background:#444;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
 </style>
 </head>
+
 <body>
 
 <div class="container">
 
 <div>
-<h2>♟ AI Cờ Vua Mạnh</h2>
-<button onclick="newGame()">Ván mới</button>
+<h2>♟ AI Cờ Vua</h2>
+<button class="new" onclick="resetGame()">Ván mới</button>
 <div id="board"></div>
 </div>
 
 <div class="right">
-<h3>💬 Chat AI Chiến Thuật</h3>
+<h3>💬 Chat AI</h3>
 <div id="chat"></div>
-<div>
-<input id="msg" placeholder="Hỏi chiến thuật...">
+
+<div class="chat-input">
+<input id="msg" placeholder="Nhắn AI...">
 <button onclick="sendMsg()">Gửi</button>
 </div>
 </div>
@@ -59,162 +103,51 @@ button{ padding:8px;}
 </div>
 
 <script>
-let game=new Chess();
-let selected=null;
+var board = null
+var game = new Chess()
 
-/* ==== VẼ BÀN CỜ ==== */
-function drawBoard(){
-  const board=document.getElementById("board");
-  board.innerHTML="";
-  let pos=game.board();
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      let sq=document.createElement("div");
-      sq.className="square "+((r+c)%2==0?"light":"dark");
-      let piece=pos[r][c];
-      if(piece) sq.innerText=getUnicode(piece);
-      sq.onclick=()=>clickSquare(r,c);
-      board.appendChild(sq);
-    }
-  }
+function onDragStart (source, piece) {
+  // Không cho kéo quân đen
+  if (piece.search(/^b/) !== -1) return false
 }
 
-function getUnicode(p){
-  const m={
-    p:{w:"♙",b:"♟"},
-    r:{w:"♖",b:"♜"},
-    n:{w:"♘",b:"♞"},
-    b:{w:"♗",b:"♝"},
-    q:{w:"♕",b:"♛"},
-    k:{w:"♔",b:"♚"}
-  };
-  return m[p.type][p.color];
+function onDrop (source, target) {
+  var move = game.move({
+    from: source,
+    to: target,
+    promotion: 'q'
+  })
+
+  if (move === null) return 'snapback'
 }
 
-/* ==== CLICK ==== */
-function clickSquare(r,c){
-  let sq=String.fromCharCode(97+c)+(8-r);
-  if(!selected){
-    if(game.get(sq) && game.get(sq).color==="w")
-      selected=sq;
-  }else{
-    let move=game.move({from:selected,to:sq,promotion:"q"});
-    selected=null;
-    if(move){
-      drawBoard();
-      setTimeout(aiMove,200);
-    }
-  }
+function onSnapEnd () {
+  board.position(game.fen())
 }
 
-/* ==== AI MẠNH (Minimax + AlphaBeta) ==== */
+board = Chessboard('board', {
+  draggable: true,
+  position: 'start',
+  onDragStart: onDragStart,
+  onDrop: onDrop,
+  onSnapEnd: onSnapEnd
+})
 
-function aiMove(){
-  let bestMove=minimaxRoot(4,true);
-  if(bestMove){
-    game.move(bestMove);
-    drawBoard();
-  }
+function resetGame(){
+  game.reset()
+  board.start()
 }
 
-function minimaxRoot(depth,isMax){
-  let moves=game.moves();
-  let bestMove=null;
-  let bestValue=-9999;
-  for(let i=0;i<moves.length;i++){
-    game.move(moves[i]);
-    let value=minimax(depth-1,-10000,10000,false);
-    game.undo();
-    if(value>bestValue){
-      bestValue=value;
-      bestMove=moves[i];
-    }
-  }
-  return bestMove;
-}
-
-function minimax(depth,alpha,beta,isMax){
-  if(depth===0) return -evaluateBoard();
-
-  let moves=game.moves();
-  if(isMax){
-    let best=-9999;
-    for(let m of moves){
-      game.move(m);
-      best=Math.max(best,minimax(depth-1,alpha,beta,false));
-      game.undo();
-      alpha=Math.max(alpha,best);
-      if(beta<=alpha) break;
-    }
-    return best;
-  }else{
-    let best=9999;
-    for(let m of moves){
-      game.move(m);
-      best=Math.min(best,minimax(depth-1,alpha,beta,true));
-      game.undo();
-      beta=Math.min(beta,best);
-      if(beta<=alpha) break;
-    }
-    return best;
-  }
-}
-
-function evaluateBoard(){
-  let total=0;
-  let board=game.board();
-  const values={p:100,n:320,b:330,r:500,q:900,k:20000};
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      let piece=board[r][c];
-      if(piece){
-        let val=values[piece.type];
-        total+=piece.color==="w"?val:-val;
-      }
-    }
-  }
-  return total;
-}
-
-/* ==== CHAT CHIẾN THUẬT ==== */
-
+/* Chat UI đơn giản */
 function sendMsg(){
-  let msg=document.getElementById("msg");
-  let chat=document.getElementById("chat");
-  if(!msg.value) return;
-
-  let text=msg.value.toLowerCase();
-  chat.innerHTML+="<div>👤 "+msg.value+"</div>";
-  chat.innerHTML+="<div>🤖 "+reply(text)+"</div>";
-  chat.scrollTop=chat.scrollHeight;
-  msg.value="";
+  let input=document.getElementById("msg")
+  let chat=document.getElementById("chat")
+  if(!input.value) return
+  chat.innerHTML += "<div>👤 "+input.value+"</div>"
+  chat.innerHTML += "<div>🤖 Đã nhận tin nhắn.</div>"
+  chat.scrollTop=chat.scrollHeight
+  input.value=""
 }
-
-function reply(t){
-
-  if(t.includes("khai hậu"))
-    return "Khai hậu sớm rất nguy hiểm vì dễ bị tấn công. Nên phát triển mã và tượng trước.";
-
-  if(t.includes("khai cuộc ý"))
-    return "Khai cuộc Ý: e4 e5 Nf3 Nc6 Bc4. Mục tiêu kiểm soát trung tâm và tấn công f7.";
-
-  if(t.includes("chiếu đôi"))
-    return "Chiếu đôi thường do mã tạo ra. Đặt mã ở vị trí trung tâm để tạo fork.";
-
-  if(t.includes("ghim quân"))
-    return "Ghim quân xảy ra khi một quân không thể di chuyển vì phía sau là vua hoặc hậu.";
-
-  if(t.includes("trung tâm"))
-    return "Kiểm soát trung tâm (e4, d4, e5, d5) giúp quân hoạt động mạnh hơn.";
-
-  if(t.includes("chiến thuật"))
-    return "Chiến thuật phổ biến: chiếu đôi, ghim quân, đòn đánh lạc hướng, mở đường.";
-
-  return "Hãy hỏi về: khai hậu, khai cuộc Ý, chiếu đôi, ghim quân, trung tâm, chiến thuật.";
-}
-
-function newGame(){ game.reset(); drawBoard(); }
-drawBoard();
 </script>
 
 </body>
