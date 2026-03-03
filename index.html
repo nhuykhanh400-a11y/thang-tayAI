@@ -7,16 +7,21 @@
 body{
   display:flex;
   flex-direction:column;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
   height:100vh;
   background:#222;
-  color:white;
   font-family:sans-serif;
 }
 
 #controls{
   margin-bottom:15px;
+}
+
+button{
+  padding:8px 16px;
+  margin:0 5px;
+  cursor:pointer;
 }
 
 #board{
@@ -42,11 +47,15 @@ body{
   outline:3px solid cyan;
 }
 
-button{
-  padding:8px 16px;
-  margin:0 5px;
-  cursor:pointer;
+.white-piece{
+  color:white;
+  text-shadow:0 0 5px black;
 }
+
+.black-piece{
+  color:black;
+}
+
 </style>
 </head>
 <body>
@@ -62,19 +71,14 @@ button{
 
 const board = document.getElementById("board");
 
-/* ======= SỬA Ở ĐÂY ======= */
-/* Đen dùng bộ ♜ ♞ ♝ ♛ ♚ ♟ */
-/* Trắng dùng bộ ♖ ♘ ♗ ♕ ♔ ♙ */
-
 const pieces = {
-  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",  // ĐEN
-  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"   // TRẮNG
+  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
+  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
 };
 
 let playerColor="white";
 let currentTurn="white";
 let selected=null;
-
 let gameState;
 
 function resetBoard(){
@@ -93,6 +97,7 @@ gameState=[
 function startGame(color){
 playerColor=color;
 currentTurn="white";
+selected=null;
 resetBoard();
 drawBoard();
 
@@ -113,15 +118,24 @@ let displayCol = playerColor==="white" ? c : 7-c;
 const square=document.createElement("div");
 square.classList.add("square");
 square.classList.add((r+c)%2==0?"light":"dark");
-square.dataset.row=displayRow;
-square.dataset.col=displayCol;
 
 const piece=gameState[displayRow][displayCol];
+
 if(piece){
-square.textContent=pieces[piece];
+const span=document.createElement("span");
+span.textContent=pieces[piece];
+
+if(piece===piece.toUpperCase()){
+span.classList.add("white-piece");
+}else{
+span.classList.add("black-piece");
+}
+
+square.appendChild(span);
 }
 
 square.addEventListener("click",()=>handleClick(displayRow,displayCol));
+
 board.appendChild(square);
 }
 }
@@ -140,6 +154,8 @@ if(playerColor==="white" && piece===piece.toLowerCase()) return;
 if(playerColor==="black" && piece===piece.toUpperCase()) return;
 
 selected={row:r,col:c};
+drawBoard();
+highlightSquare(r,c);
 return;
 }
 
@@ -152,6 +168,14 @@ drawBoard();
 if(currentTurn!==playerColor){
 makeAIMove();
 }
+}
+
+function highlightSquare(r,c){
+const index = playerColor==="white"
+? r*8+c
+: (7-r)*8+(7-c);
+
+board.children[index].classList.add("selected");
 }
 
 function movePiece(sr,sc,tr,tc){
@@ -209,7 +233,7 @@ drawBoard();
 function makeAIMove(){
 const fen=convertToFEN();
 engine.postMessage("position fen "+fen);
-engine.postMessage("go depth 15");
+engine.postMessage("go depth 12");
 }
 
 startGame("white");
