@@ -40,6 +40,15 @@ body {
 .selected {
   outline: 3px solid yellow;
 }
+
+/* ===== THÊM HIGHLIGHT ===== */
+.highlight-move {
+  background-color: rgba(255, 255, 0, 0.4) !important;
+}
+
+.highlight-capture {
+  background-color: rgba(255, 0, 0, 0.4) !important;
+}
 </style>
 </head>
 
@@ -94,8 +103,40 @@ function createBoard() {
 
 createBoard();
 
+function clearHighlights() {
+  document.querySelectorAll(".square").forEach(sq => {
+    sq.classList.remove("highlight-move");
+    sq.classList.remove("highlight-capture");
+  });
+}
+
+function highlightMoves(row, col) {
+  clearHighlights();
+
+  const piece = position[row][col];
+  if (piece === ".") return;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+
+      if (isValidMove(piece, row, col, r, c)) {
+        const square = document.querySelector(
+          `.square[data-row='${r}'][data-col='${c}']`
+        );
+
+        if (position[r][c] === ".") {
+          square.classList.add("highlight-move");
+        } else {
+          square.classList.add("highlight-capture");
+        }
+      }
+
+    }
+  }
+}
+
 function onSquareClick(e) {
-  const square = e.currentTarget; // FIX QUAN TRỌNG
+  const square = e.currentTarget;
 
   const row = +square.dataset.row;
   const col = +square.dataset.col;
@@ -106,6 +147,7 @@ function onSquareClick(e) {
     if (piece !== ".") {
       selected = { row, col };
       square.classList.add("selected");
+      highlightMoves(row, col); // THÊM
     }
     return;
   }
@@ -119,6 +161,7 @@ function onSquareClick(e) {
   }
 
   selected = null;
+  clearHighlights(); // THÊM
   createBoard();
 }
 
