@@ -5,75 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Chat + Cờ Vua</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.css"/>
+<link rel="stylesheet"
+href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
   display:flex;
+  font-family:Arial;
   height:100vh;
-  background:#0f172a;
+  background:#1e1e1e;
   color:white;
 }
 .sidebar{
   width:200px;
-  background:#111827;
+  background:#111;
   padding:20px;
 }
 .sidebar button{
   width:100%;
   margin-bottom:10px;
   padding:10px;
-  background:#1f2937;
+  background:#333;
   color:white;
   border:none;
   cursor:pointer;
 }
 .main{
   flex:1;
-  display:flex;
-  flex-direction:column;
-}
-.chat-container{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-.messages{
-  flex:1;
-  padding:15px;
-  overflow-y:auto;
-}
-.input-area{
-  display:flex;
-  padding:10px;
-  background:#1e293b;
-}
-input{
-  flex:1;
-  padding:10px;
-}
-button.send{
-  padding:10px;
+  padding:20px;
 }
 .hidden{
   display:none;
 }
 #board{
-  width:400px;
+  width:500px;
   margin:20px auto;
-}
-.timers{
-  text-align:center;
-  margin-top:10px;
-}
-select{
-  padding:5px;
-  margin:10px;
 }
 </style>
 </head>
@@ -87,60 +58,19 @@ select{
 
 <div class="main">
 
-<!-- CHAT -->
-<div id="chatSection" class="chat-container">
-  <div class="messages" id="messages"></div>
-  <div class="input-area">
-    <input id="userInput" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendMessage()">
-    <button class="send" onclick="sendMessage()">Gửi</button>
-  </div>
+<div id="chatSection">
+  <h2>Chat Demo</h2>
+  <p>Chat vẫn hoạt động bình thường.</p>
 </div>
 
-<!-- CHESS -->
 <div id="chessSection" class="hidden">
-  <div style="text-align:center">
-    Cấp độ:
-    <select id="levelSelect">
-      <option value="5">Dễ</option>
-      <option value="10" selected>Trung bình</option>
-      <option value="18">Khó</option>
-    </select>
-  </div>
-
+  <h2 style="text-align:center">Bàn Cờ</h2>
   <div id="board"></div>
-
-  <div class="timers">
-    ⚪ Trắng: <span id="whiteTimer">0:00</span> |
-    ⚫ Đen: <span id="blackTimer">0:00</span>
-  </div>
 </div>
 
 </div>
 
 <script>
-
-/////////////////////////
-// CHAT
-/////////////////////////
-
-function sendMessage(){
-  const input = document.getElementById("userInput");
-  const text = input.value.trim();
-  if(!text) return;
-
-  addMessage("Bạn", text);
-  input.value="";
-
-  setTimeout(()=>{
-    addMessage("AI", "Tôi đang chạy offline demo 😎");
-  },500);
-}
-
-function addMessage(sender,text){
-  const div=document.createElement("div");
-  div.innerHTML="<b>"+sender+":</b> "+text;
-  document.getElementById("messages").appendChild(div);
-}
 
 function showChat(){
   document.getElementById("chatSection").classList.remove("hidden");
@@ -150,89 +80,21 @@ function showChat(){
 function showChess(){
   document.getElementById("chatSection").classList.add("hidden");
   document.getElementById("chessSection").classList.remove("hidden");
+
+  setTimeout(initBoard,100); // đảm bảo render đúng
 }
 
-/////////////////////////
-// CHESS
-/////////////////////////
+var board=null;
+var game=new Chess();
 
-let board;
-let game = new Chess();
-let stockfish = new Worker("https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js");
+function initBoard(){
+  if(board!==null) return;
 
-let whiteTime=0;
-let blackTime=0;
-let timerInterval=null;
-let currentTurn="white";
-
-function formatTime(seconds){
-  const mins=Math.floor(seconds/60);
-  const secs=seconds%60;
-  return mins+":"+(secs<10?"0":"")+secs;
-}
-
-function startTimer(){
-  if(timerInterval) clearInterval(timerInterval);
-
-  timerInterval=setInterval(()=>{
-    if(currentTurn==="white"){
-      whiteTime++;
-      document.getElementById("whiteTimer").innerText=formatTime(whiteTime);
-    }else{
-      blackTime++;
-      document.getElementById("blackTimer").innerText=formatTime(blackTime);
-    }
-  },1000);
-}
-
-function onDragStart(source,piece){
-  if(game.game_over()) return false;
-  if(piece.search(/^b/)!==-1) return false;
-}
-
-function onDrop(source,target){
-  let move=game.move({
-    from:source,
-    to:target,
-    promotion:'q'
+  board=Chessboard('board',{
+    draggable:true,
+    position:'start'
   });
-
-  if(move===null) return 'snapback';
-
-  currentTurn="black";
-  startTimer();
-  window.setTimeout(makeAIMove,250);
 }
-
-function makeAIMove(){
-  let level=document.getElementById("levelSelect").value;
-
-  stockfish.postMessage("position fen "+game.fen());
-  stockfish.postMessage("go depth "+level);
-
-  stockfish.onmessage=function(event){
-    if(event.data.startsWith("bestmove")){
-      let move=event.data.split(" ")[1];
-      game.move({
-        from:move.substring(0,2),
-        to:move.substring(2,4),
-        promotion:'q'
-      });
-      board.position(game.fen());
-      currentTurn="white";
-      startTimer();
-    }
-  };
-}
-
-board = Chessboard('board',{
-  draggable:true,
-  position:'start',
-  onDragStart:onDragStart,
-  onDrop:onDrop
-});
-
-startTimer();
 
 </script>
 
