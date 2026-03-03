@@ -20,9 +20,15 @@ module.exports = async function handler(req, res) {
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
-          role: "system",
-          content: "Bạn là một AI nói chuyện tự nhiên, thông minh, trả lời bằng tiếng Việt."
-        },
+  role: "system",
+  content: `
+Bạn là một AI cực kỳ thông minh, tư duy logic tốt,
+trả lời rõ ràng, có cấu trúc, phân tích trước khi kết luận.
+Luôn giải thích ngắn gọn nhưng đủ ý.
+Nếu câu hỏi khó, hãy suy luận từng bước.
+Trả lời bằng tiếng Việt tự nhiên.
+`
+},
         {
           role: "user",
           content: message
