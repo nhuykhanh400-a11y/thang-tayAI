@@ -32,11 +32,9 @@ body{
 .light{ background:#f0d9b5; }
 .dark{ background:#b58863; }
 
-/* ===== VÀNG MỚI + PIXEL PHÂN CÁCH ===== */
-
 .highlight{
-  background:#fff176 !important;   /* vàng sáng nhưng nhạt */
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); /* pixel phân cách siêu nhỏ */
+  background:#fff176 !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
 }
 
 .capture{
@@ -51,7 +49,6 @@ body{
 .piece{
   user-select:none;
 }
-
 </style>
 </head>
 <body>
@@ -59,10 +56,6 @@ body{
 <div id="board"></div>
 
 <script>
-
-/* =======================
-   GIỮ NGUYÊN TOÀN BỘ LOGIC
-   ======================= */
 
 const board = document.getElementById("board");
 
@@ -84,13 +77,6 @@ let gameState = [
 
 let selected = null;
 let currentTurn = "white";
-
-let whiteKingMoved=false;
-let blackKingMoved=false;
-let whiteRookLeftMoved=false;
-let whiteRookRightMoved=false;
-let blackRookLeftMoved=false;
-let blackRookRightMoved=false;
 let enPassantTarget=null;
 
 /* ===== DRAW ===== */
@@ -145,7 +131,23 @@ function handleClick(r,c){
 
   selected=null;
   clearHighlight();
-  /* ===== CHECK LOGIC (THÊM VÀO - KHÔNG XOÁ GÌ) ===== */
+  drawBoard();
+}
+
+/* ===== MOVE ===== */
+
+function movePiece(sr,sc,tr,tc){
+
+  const piece = gameState[sr][sc];
+
+  gameState[tr][tc]=piece;
+  gameState[sr][sc]="";
+
+  if(piece==="P" && tr===0) gameState[tr][tc]="Q";
+  if(piece==="p" && tr===7) gameState[tr][tc]="q";
+}
+
+/* ===== CHECK LOGIC (ĐẶT ĐÚNG VỊ TRÍ NGOÀI HANDLECLICK) ===== */
 
 function findKing(board,isWhite){
   const king = isWhite ? "K" : "k";
@@ -160,10 +162,8 @@ function findKing(board,isWhite){
 }
 
 function isSquareAttacked(board,row,col,byWhite){
-
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-
       const piece = board[r][c];
       if(!piece) continue;
 
@@ -171,59 +171,18 @@ function isSquareAttacked(board,row,col,byWhite){
       if(isWhite!==byWhite) continue;
 
       const moves = getPseudoMoves(board,r,c);
-
       if(moves.some(m=>m.r===row && m.c===col)){
         return true;
       }
-
     }
   }
-
   return false;
 }
 
 function isKingInCheck(board,isWhite){
-
   const kingPos = findKing(board,isWhite);
   if(!kingPos) return false;
-
   return isSquareAttacked(board,kingPos.r,kingPos.c,!isWhite);
-}
-  drawBoard();
-}
-
-/* ===== MOVE ===== */
-
-function movePiece(sr,sc,tr,tc){
-
-  const piece = gameState[sr][sc];
-
-  if(piece.toLowerCase()==="p" && enPassantTarget
-    && tr===enPassantTarget.r && tc===enPassantTarget.c){
-      gameState[sr][tc]="";
-  }
-
-  if(piece.toLowerCase()==="k" && Math.abs(tc-sc)===2){
-    if(tc===6){
-      gameState[tr][5]=gameState[tr][7];
-      gameState[tr][7]="";
-    }
-    if(tc===2){
-      gameState[tr][3]=gameState[tr][0];
-      gameState[tr][0]="";
-    }
-  }
-
-  gameState[tr][tc]=piece;
-  gameState[sr][sc]="";
-
-  if(piece==="P" && tr===0) gameState[tr][tc]="Q";
-  if(piece==="p" && tr===7) gameState[tr][tc]="q";
-
-  enPassantTarget=null;
-  if(piece.toLowerCase()==="p" && Math.abs(tr-sr)===2){
-    enPassantTarget={r:(tr+sr)/2,c:tc};
-  }
 }
 
 /* ===== HIGHLIGHT ===== */
@@ -250,9 +209,8 @@ function highlightMoves(r,c){
   });
 }
 
-/* ===== RULE ENGINE (GIỮ NGUYÊN) ===== */
+/* ===== RULE ENGINE ===== */
 
-function cloneBoard(b){ return JSON.parse(JSON.stringify(b)); }
 function inside(x,y){ return x>=0&&x<8&&y>=0&&y<8; }
 
 function getPseudoMoves(board,r,c){
@@ -262,8 +220,6 @@ function getPseudoMoves(board,r,c){
   const moves=[];
   const isWhite=piece===piece.toUpperCase();
   const dir=isWhite?-1:1;
-
-  function inside(x,y){ return x>=0&&x<8&&y>=0&&y<8; }
 
   function slide(dirs){
     dirs.forEach(d=>{
@@ -284,18 +240,14 @@ function getPseudoMoves(board,r,c){
   switch(piece.toLowerCase()){
 
     case "p":
-
-      // đi 1 ô
       if(inside(r+dir,c) && !board[r+dir][c])
         moves.push({r:r+dir,c:c});
 
-      // đi 2 ô đầu trận
       if((isWhite && r===6) || (!isWhite && r===1)){
         if(!board[r+dir][c] && !board[r+2*dir][c])
           moves.push({r:r+2*dir,c:c});
       }
 
-      // ăn chéo
       [-1,1].forEach(dc=>{
         let x=r+dir,y=c+dc;
         if(inside(x,y) && board[x][y] &&
@@ -303,7 +255,6 @@ function getPseudoMoves(board,r,c){
           moves.push({r:x,c:y});
         }
       });
-
       break;
 
     case "r":
@@ -358,16 +309,13 @@ function getLegalMoves(r,c){
   const legal=[];
 
   pseudo.forEach(m=>{
-
     const test=JSON.parse(JSON.stringify(gameState));
-
     test[m.r][m.c]=test[r][c];
     test[r][c]="";
 
     if(!isKingInCheck(test,isWhite)){
       legal.push(m);
     }
-
   });
 
   return legal;
